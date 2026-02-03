@@ -1,9 +1,9 @@
 import { alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
+import { Outlet } from 'react-router';
 import AppNavbar from '../components/AppNavbar';
 import Header from '../components/Header';
-import MainGrid from '../components/MainGrid';
 import SideMenu from '../components/SideMenu';
 
 export default function Dashboard() {
@@ -32,7 +32,7 @@ export default function Dashboard() {
           }}
         >
           <Header />
-          <MainGrid />
+          <Outlet />
         </Stack>
       </Box>
     </Box>
