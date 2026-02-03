@@ -1,12 +1,19 @@
 import { alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import { Outlet } from 'react-router';
+import { Navigate, Outlet } from 'react-router';
 import AppNavbar from '../components/AppNavbar';
 import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
+import { useAuth } from '~/context/AuthContext';
 
 export default function Dashboard() {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/signin" replace />;
+  }
+
   return (
     <Box sx={{ display: 'flex' }}>
       <SideMenu />

@@ -11,6 +11,7 @@ import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 
 import type { Route } from "./+types/root";
 import { AppTheme } from "./theme";
+import { AuthProvider } from "./context/AuthContext";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -49,7 +50,9 @@ export default function App() {
   return (
     <AppTheme>
       <CssBaseline enableColorScheme />
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
     </AppTheme>
   );
 }
