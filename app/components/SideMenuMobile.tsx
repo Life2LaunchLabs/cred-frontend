@@ -1,11 +1,14 @@
 import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 import Stack from '@mui/material/Stack';
+import SvgIcon from '@mui/material/SvgIcon';
 import Typography from '@mui/material/Typography';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import MenuButton from './MenuButton';
 import MenuContent from './MenuContent';
 import CardAlert from './CardAlert';
@@ -35,6 +38,33 @@ export default function SideMenuMobile({ open, toggleDrawer }: SideMenuMobilePro
           height: '100%',
         }}
       >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            p: 2,
+            pb: 1,
+          }}
+        >
+          <SvgIcon sx={{ height: 28, width: 28, color: 'primary.main', flexShrink: 0 }}>
+            <VerifiedIcon />
+          </SvgIcon>
+          <Typography
+            variant="h6"
+            sx={{
+              ml: 1,
+              fontWeight: 700,
+              background: 'linear-gradient(90deg, #4876EE 0%, #00D3AB 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.5px',
+            }}
+          >
+            LaunchCRED
+          </Typography>
+        </Box>
+        <Divider />
         <Stack direction="row" sx={{ p: 2, pb: 0, gap: 1 }}>
           <Stack
             direction="row"

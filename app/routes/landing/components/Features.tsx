@@ -7,32 +7,32 @@ import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 
-import DevicesRoundedIcon from '@mui/icons-material/DevicesRounded';
-import EdgesensorHighRoundedIcon from '@mui/icons-material/EdgesensorHighRounded';
-import ViewQuiltRoundedIcon from '@mui/icons-material/ViewQuiltRounded';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import ShareIcon from '@mui/icons-material/Share';
+import InsightsIcon from '@mui/icons-material/Insights';
 
 const items = [
   {
-    icon: <ViewQuiltRoundedIcon />,
-    title: 'Dashboard',
+    icon: <VerifiedIcon />,
+    title: 'Badge Creation',
     description:
-      'This item could provide a snapshot of the most important metrics or data points related to the product.',
+      'Design custom digital badges with your branding. Define criteria, skills, and achievements that badges represent.',
     imageLight: `url("${process.env.TEMPLATE_IMAGE_URL || 'https://mui.com'}/static/images/templates/templates-images/dash-light.png")`,
     imageDark: `url("${process.env.TEMPLATE_IMAGE_URL || 'https://mui.com'}/static/images/templates/templates-images/dash-dark.png")`,
   },
   {
-    icon: <EdgesensorHighRoundedIcon />,
-    title: 'Mobile integration',
+    icon: <ShareIcon />,
+    title: 'Easy Sharing',
     description:
-      'This item could provide information about the mobile app version of the product.',
+      'Recipients can share their badges on LinkedIn, social media, or embed them in digital portfolios and resumes.',
     imageLight: `url("${process.env.TEMPLATE_IMAGE_URL || 'https://mui.com'}/static/images/templates/templates-images/mobile-light.png")`,
     imageDark: `url("${process.env.TEMPLATE_IMAGE_URL || 'https://mui.com'}/static/images/templates/templates-images/mobile-dark.png")`,
   },
   {
-    icon: <DevicesRoundedIcon />,
-    title: 'Available on all platforms',
+    icon: <InsightsIcon />,
+    title: 'Analytics & Insights',
     description:
-      'This item could let users know the product is available on all platforms, such as web, mobile, and desktop.',
+      'Track badge issuance, acceptance rates, and sharing metrics. Understand how your credentials are being used.',
     imageLight: `url("${process.env.TEMPLATE_IMAGE_URL || 'https://mui.com'}/static/images/templates/templates-images/devices-light.png")`,
     imageDark: `url("${process.env.TEMPLATE_IMAGE_URL || 'https://mui.com'}/static/images/templates/templates-images/devices-dark.png")`,
   },
@@ -151,15 +151,14 @@ export default function Features() {
           gutterBottom
           sx={{ color: 'text.primary' }}
         >
-          Product features
+          Platform Features
         </Typography>
         <Typography
           variant="body1"
           sx={{ color: 'text.secondary', mb: { xs: 2, sm: 4 } }}
         >
-          Provide a brief overview of the key features of the product. For example,
-          you could list the number of features, their types or benefits, and
-          add-ons.
+          Everything you need to create a thriving credentialing program. From badge
+          design to issuance and verification, LaunchCRED has you covered.
         </Typography>
       </Box>
       <Box

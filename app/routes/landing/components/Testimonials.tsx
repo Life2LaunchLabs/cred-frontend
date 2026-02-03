@@ -10,46 +10,46 @@ import { useColorScheme } from '@mui/material/styles';
 
 const userTestimonials = [
   {
-    avatar: <Avatar alt="Remy Sharp" src="/static/images/avatar/1.jpg" />,
-    name: 'Remy Sharp',
-    occupation: 'Senior Engineer',
+    avatar: <Avatar alt="Sarah Chen" src="/static/images/avatar/1.jpg" />,
+    name: 'Sarah Chen',
+    occupation: 'Director of Learning, TechCorp',
     testimonial:
-      "I absolutely love how versatile this product is! Whether I'm tackling work projects or indulging in my favorite hobbies, it seamlessly adapts to my changing needs. Its intuitive design has truly enhanced my daily routine, making tasks more efficient and enjoyable.",
+      "LaunchCRED transformed how we recognize employee achievements. Our team engagement increased significantly after we started issuing skill badges. The platform made it incredibly easy to design and distribute credentials.",
   },
   {
-    avatar: <Avatar alt="Travis Howard" src="/static/images/avatar/2.jpg" />,
-    name: 'Travis Howard',
-    occupation: 'Lead Product Designer',
+    avatar: <Avatar alt="Marcus Johnson" src="/static/images/avatar/2.jpg" />,
+    name: 'Marcus Johnson',
+    occupation: 'Dean of Continuing Education',
     testimonial:
-      "One of the standout features of this product is the exceptional customer support. In my experience, the team behind this product has been quick to respond and incredibly helpful. It's reassuring to know that they stand firmly behind their product.",
+      "The support team helped us launch our micro-credentialing program in record time. Our students love being able to share their badges on LinkedIn, and employers appreciate the easy verification process.",
   },
   {
-    avatar: <Avatar alt="Cindy Baker" src="/static/images/avatar/3.jpg" />,
-    name: 'Cindy Baker',
-    occupation: 'CTO',
+    avatar: <Avatar alt="Emily Rodriguez" src="/static/images/avatar/3.jpg" />,
+    name: 'Emily Rodriguez',
+    occupation: 'HR Director',
     testimonial:
-      'The level of simplicity and user-friendliness in this product has significantly simplified my life. I appreciate the creators for delivering a solution that not only meets but exceeds user expectations.',
+      "We needed a way to validate internal certifications and LaunchCRED delivered. The automated issuance feature saves our team hours each week, and the analytics help us track program effectiveness.",
   },
   {
-    avatar: <Avatar alt="Remy Sharp" src="/static/images/avatar/4.jpg" />,
-    name: 'Julia Stewart',
-    occupation: 'Senior Engineer',
+    avatar: <Avatar alt="David Park" src="/static/images/avatar/4.jpg" />,
+    name: 'David Park',
+    occupation: 'Training Manager',
     testimonial:
-      "I appreciate the attention to detail in the design of this product. The small touches make a big difference, and it's evident that the creators focused on delivering a premium experience.",
+      "The badge builder is intuitive and professional. We created our entire certification program in a single afternoon. Our learners are proud to display their achievements.",
   },
   {
-    avatar: <Avatar alt="Travis Howard" src="/static/images/avatar/5.jpg" />,
-    name: 'John Smith',
-    occupation: 'Product Designer',
+    avatar: <Avatar alt="Lisa Thompson" src="/static/images/avatar/5.jpg" />,
+    name: 'Lisa Thompson',
+    occupation: 'Program Coordinator',
     testimonial:
-      "I've tried other similar products, but this one stands out for its innovative features. It's clear that the makers put a lot of thought into creating a solution that truly addresses user needs.",
+      "Switching to LaunchCRED from paper certificates was the best decision we made. Verification is instant, credentials never get lost, and our program looks more professional than ever.",
   },
   {
-    avatar: <Avatar alt="Cindy Baker" src="/static/images/avatar/6.jpg" />,
-    name: 'Daniel Wolf',
-    occupation: 'CDO',
+    avatar: <Avatar alt="James Wilson" src="/static/images/avatar/6.jpg" />,
+    name: 'James Wilson',
+    occupation: 'Chief Learning Officer',
     testimonial:
-      "The quality of this product exceeded my expectations. It's durable, well-designed, and built to last. Definitely worth the investment!",
+      "The Open Badge standard compliance was crucial for us. LaunchCRED gives our credentials legitimacy and ensures they're recognized across the industry. Excellent platform.",
   },
 ];
 
@@ -117,12 +117,11 @@ export default function Testimonials() {
           gutterBottom
           sx={{ color: 'text.primary' }}
         >
-          Testimonials
+          Trusted by Organizations
         </Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          See what our customers love about our products. Discover how we excel in
-          efficiency, durability, and satisfaction. Join us for quality, innovation,
-          and reliable support.
+          See how organizations are using LaunchCRED to recognize achievements,
+          validate skills, and empower their learners with verifiable credentials.
         </Typography>
       </Box>
       <Grid container spacing={2}>

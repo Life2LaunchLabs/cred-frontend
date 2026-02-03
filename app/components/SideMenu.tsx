@@ -5,6 +5,8 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import SvgIcon from '@mui/material/SvgIcon';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import SelectContent from './SelectContent';
 import MenuContent from './MenuContent';
 import CardAlert from './CardAlert';
@@ -37,7 +39,33 @@ export default function SideMenu() {
       <Box
         sx={{
           display: 'flex',
+          alignItems: 'center',
           mt: 'calc(var(--template-frame-height, 0px) + 4px)',
+          p: 1.5,
+        }}
+      >
+        <SvgIcon sx={{ height: 28, width: 28, color: 'primary.main', flexShrink: 0 }}>
+          <VerifiedIcon />
+        </SvgIcon>
+        <Typography
+          variant="h6"
+          sx={{
+            ml: 1,
+            fontWeight: 700,
+            background: 'linear-gradient(90deg, #4876EE 0%, #00D3AB 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '-0.5px',
+          }}
+        >
+          LaunchCRED
+        </Typography>
+      </Box>
+      <Divider />
+      <Box
+        sx={{
+          display: 'flex',
           p: 1.5,
         }}
       >

@@ -5,11 +5,14 @@ import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import SvgIcon from '@mui/material/SvgIcon';
 import type {} from '@mui/material/themeCssVarsAugmentation';
 import PersonIcon from '@mui/icons-material/Person';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DescriptionIcon from '@mui/icons-material/Description';
 import LayersIcon from '@mui/icons-material/Layers';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
@@ -107,6 +110,38 @@ export default function DashboardSidebar({
     (viewport: 'phone' | 'tablet' | 'desktop') => (
       <React.Fragment>
         <Toolbar />
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: mini ? 'center' : 'flex-start',
+            px: mini ? 0 : 2,
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <SvgIcon sx={{ height: 28, width: 28, color: 'primary.main', flexShrink: 0 }}>
+            <VerifiedIcon />
+          </SvgIcon>
+          {!mini && (
+            <Typography
+              variant="h6"
+              sx={{
+                ml: 1,
+                fontWeight: 700,
+                background: 'linear-gradient(90deg, #4876EE 0%, #00D3AB 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.5px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              LaunchCRED
+            </Typography>
+          )}
+        </Box>
         <Box
           component="nav"
           aria-label={`${viewport.charAt(0).toUpperCase()}${viewport.slice(1)}`}

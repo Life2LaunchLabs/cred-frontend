@@ -14,39 +14,39 @@ import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
 const items = [
   {
     icon: <SettingsSuggestRoundedIcon />,
-    title: 'Adaptable performance',
+    title: 'Open Badge Standard',
     description:
-      'Our product effortlessly adjusts to your needs, boosting efficiency and simplifying your tasks.',
+      'Built on the Open Badges specification, ensuring your credentials are portable and universally recognized.',
   },
   {
     icon: <ConstructionRoundedIcon />,
-    title: 'Built to last',
+    title: 'Enterprise Ready',
     description:
-      'Experience unmatched durability that goes above and beyond with lasting investment.',
+      'Scalable infrastructure designed for organizations of all sizes, from small teams to large institutions.',
   },
   {
     icon: <ThumbUpAltRoundedIcon />,
-    title: 'Great user experience',
+    title: 'Intuitive Badge Builder',
     description:
-      'Integrate our product into your routine with an intuitive and easy-to-use interface.',
+      'Create professional badges in minutes with our drag-and-drop designer. No design experience required.',
   },
   {
     icon: <AutoFixHighRoundedIcon />,
-    title: 'Innovative functionality',
+    title: 'Automated Issuance',
     description:
-      'Stay ahead with features that set new standards, addressing your evolving needs better than the rest.',
+      'Set up rules to automatically issue badges based on completions, assessments, or integrations with your LMS.',
   },
   {
     icon: <SupportAgentRoundedIcon />,
-    title: 'Reliable support',
+    title: 'Dedicated Support',
     description:
-      'Count on our responsive customer support, offering assistance that goes beyond the purchase.',
+      'Our credentialing experts are here to help you design and launch successful badge programs.',
   },
   {
     icon: <QueryStatsRoundedIcon />,
-    title: 'Precision in every detail',
+    title: 'Instant Verification',
     description:
-      'Enjoy a meticulously crafted product where small touches make a significant impact on your overall experience.',
+      'Anyone can verify credential authenticity with a single click. Built-in fraud prevention protects your brand.',
   },
 ];
 
@@ -77,12 +77,11 @@ export default function Highlights() {
           }}
         >
           <Typography component="h2" variant="h4" gutterBottom>
-            Highlights
+            Why LaunchCRED?
           </Typography>
           <Typography variant="body1" sx={{ color: 'grey.400' }}>
-            Explore why our product stands out: adaptability, durability,
-            user-friendly design, and innovation. Enjoy reliable customer support and
-            precision in every detail.
+            Discover why organizations choose LaunchCRED for their digital credentialing needs.
+            Industry standards, powerful features, and dedicated support for your success.
           </Typography>
         </Box>
         <Grid container spacing={2}>

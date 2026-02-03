@@ -13,44 +13,44 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 
 const tiers = [
   {
-    title: 'Free',
+    title: 'Starter',
     price: '0',
     description: [
-      '10 users included',
-      '2 GB of storage',
-      'Help center access',
+      'Up to 100 badges/month',
+      '3 badge templates',
+      'Basic analytics',
       'Email support',
     ],
-    buttonText: 'Sign up for free',
+    buttonText: 'Start for free',
     buttonVariant: 'outlined',
     buttonColor: 'primary',
   },
   {
     title: 'Professional',
     subheader: 'Recommended',
-    price: '15',
+    price: '49',
     description: [
-      '20 users included',
-      '10 GB of storage',
-      'Help center access',
-      'Priority email support',
-      'Dedicated team',
-      'Best deals',
+      'Unlimited badges',
+      'Unlimited templates',
+      'Advanced analytics',
+      'Priority support',
+      'Custom branding',
+      'API access',
     ],
-    buttonText: 'Start now',
+    buttonText: 'Get started',
     buttonVariant: 'contained',
     buttonColor: 'secondary',
   },
   {
     title: 'Enterprise',
-    price: '30',
+    price: '199',
     description: [
-      '50 users included',
-      '30 GB of storage',
-      'Help center access',
-      'Phone & email support',
+      'Everything in Professional',
+      'SSO integration',
+      'Dedicated success manager',
+      'Custom integrations',
     ],
-    buttonText: 'Contact us',
+    buttonText: 'Contact sales',
     buttonVariant: 'outlined',
     buttonColor: 'primary',
   },
@@ -85,10 +85,9 @@ export default function Pricing() {
           Pricing
         </Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          Quickly build an effective pricing table for your potential customers with
-          this layout. <br />
-          It&apos;s built with default Material UI components with little
-          customization.
+          Choose the plan that fits your credentialing needs. Start free and scale
+          as your program grows. All plans include Open Badge compliance and instant
+          verification.
         </Typography>
       </Box>
       <Grid
