@@ -7,6 +7,7 @@ import {
   ScrollRestoration,
 } from "react-router";
 import CssBaseline from "@mui/material/CssBaseline";
+import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 
 import type { Route } from "./+types/root";
 import { AppTheme } from "./theme";
@@ -33,6 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <InitColorSchemeScript attribute="data-mui-color-scheme" />
       </head>
       <body>
         {children}
