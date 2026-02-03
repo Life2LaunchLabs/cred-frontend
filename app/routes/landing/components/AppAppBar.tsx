@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link as RouterLink } from 'react-router';
 import { styled, alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import AppBar from '@mui/material/AppBar';
@@ -80,10 +81,10 @@ export default function AppAppBar() {
               alignItems: 'center',
             }}
           >
-            <Button color="primary" variant="text" size="small">
+            <Button component={RouterLink} to="/signin" color="primary" variant="text" size="small">
               Sign in
             </Button>
-            <Button color="primary" variant="contained" size="small">
+            <Button component={RouterLink} to="/signup" color="primary" variant="contained" size="small">
               Sign up
             </Button>
             <ColorModeIconDropdown />
@@ -123,12 +124,12 @@ export default function AppAppBar() {
                 <MenuItem>Blog</MenuItem>
                 <Divider sx={{ my: 3 }} />
                 <MenuItem>
-                  <Button color="primary" variant="contained" fullWidth>
+                  <Button component={RouterLink} to="/signup" color="primary" variant="contained" fullWidth>
                     Sign up
                   </Button>
                 </MenuItem>
                 <MenuItem>
-                  <Button color="primary" variant="outlined" fullWidth>
+                  <Button component={RouterLink} to="/signin" color="primary" variant="outlined" fullWidth>
                     Sign in
                   </Button>
                 </MenuItem>

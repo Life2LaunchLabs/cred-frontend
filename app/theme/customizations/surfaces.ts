@@ -4,6 +4,14 @@ import { gray } from '../themePrimitives';
 
 /* eslint-disable import/prefer-default-export */
 export const surfacesCustomizations: Components<Theme> = {
+  MuiCssBaseline: {
+    styleOverrides: {
+      body: {
+        position: 'relative',
+        zIndex: -10,
+      },
+    },
+  },
   MuiAccordion: {
     defaultProps: {
       elevation: 0,
