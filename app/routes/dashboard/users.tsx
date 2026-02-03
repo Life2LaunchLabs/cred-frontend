@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
+import UsersGrid from '~/components/placeholder/UsersGrid';
 
 export default function Users() {
   return (
@@ -8,20 +8,7 @@ export default function Users() {
       <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
         Users
       </Typography>
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 4,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: 300,
-        }}
-      >
-        <Typography color="text.secondary">
-          Users content will go here
-        </Typography>
-      </Paper>
+      <UsersGrid />
     </Box>
   );
 }
