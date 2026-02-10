@@ -107,7 +107,10 @@ export default function SignUp() {
     return isValid;
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const [submitError, setSubmitError] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (nameError || emailError || passwordError) {
       return;
@@ -117,7 +120,15 @@ export default function SignUp() {
     const email = data.get('email') as string;
     const password = data.get('password') as string;
 
-    signUp(name, email, password);
+    setSubmitError('');
+    setIsSubmitting(true);
+    const error = await signUp(name, email, password);
+    setIsSubmitting(false);
+
+    if (error) {
+      setSubmitError(error);
+      return;
+    }
     navigate('/home');
   };
 
@@ -187,13 +198,19 @@ export default function SignUp() {
             control={<Checkbox value="allowExtraEmails" color="primary" />}
             label="I want to receive updates via email."
           />
+          {submitError && (
+            <Typography color="error" variant="body2" sx={{ textAlign: 'center' }}>
+              {submitError}
+            </Typography>
+          )}
           <Button
             type="submit"
             fullWidth
             variant="contained"
             onClick={validateInputs}
+            disabled={isSubmitting}
           >
-            Sign up
+            {isSubmitting ? 'Signing up...' : 'Sign up'}
           </Button>
         </Box>
         <Divider>

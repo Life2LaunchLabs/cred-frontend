@@ -78,7 +78,10 @@ export default function SignIn() {
     setOpen(false);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const [submitError, setSubmitError] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (emailError || passwordError) {
       return;
@@ -87,7 +90,15 @@ export default function SignIn() {
     const email = data.get('email') as string;
     const password = data.get('password') as string;
 
-    signIn(email, password);
+    setSubmitError('');
+    setIsSubmitting(true);
+    const error = await signIn(email, password);
+    setIsSubmitting(false);
+
+    if (error) {
+      setSubmitError(error);
+      return;
+    }
     navigate('/home');
   };
 
@@ -179,13 +190,19 @@ export default function SignIn() {
             label="Remember me"
           />
           <ForgotPassword open={open} handleClose={handleClose} />
+          {submitError && (
+            <Typography color="error" variant="body2" sx={{ textAlign: 'center' }}>
+              {submitError}
+            </Typography>
+          )}
           <Button
             type="submit"
             fullWidth
             variant="contained"
             onClick={validateInputs}
+            disabled={isSubmitting}
           >
-            Sign in
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
           </Button>
           <Link
             component="button"

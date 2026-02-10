@@ -1,4 +1,9 @@
-import * as React from 'react';
+import * as React from "react";
+import {
+  login as apiLogin,
+  register as apiRegister,
+} from "~/api/generated";
+import type { User as ApiUser } from "~/api/generated";
 
 export interface User {
   id: string;
@@ -9,18 +14,27 @@ export interface User {
 export interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => void;
-  signUp: (name: string, email: string, password: string) => void;
+  signIn: (email: string, password: string) => Promise<string | null>;
+  signUp: (name: string, email: string, password: string) => Promise<string | null>;
   signOut: () => void;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
 
-const AUTH_STORAGE_KEY = 'auth_user';
+const AUTH_STORAGE_KEY = "auth_user";
+const TOKEN_STORAGE_KEY = "auth_token";
+
+function toUser(apiUser: ApiUser): User {
+  return {
+    id: apiUser.id,
+    email: apiUser.email,
+    name: apiUser.name ?? apiUser.email.split("@")[0],
+  };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(() => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === "undefined") return null;
     const stored = localStorage.getItem(AUTH_STORAGE_KEY);
     if (stored) {
       try {
@@ -32,31 +46,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
-  // Mock sign in - always succeeds
-  const signIn = React.useCallback((email: string, _password: string) => {
-    const mockUser: User = {
-      id: '1',
-      email,
-      name: email.split('@')[0],
-    };
-    setUser(mockUser);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(mockUser));
-  }, []);
+  const signIn = React.useCallback(
+    async (email: string, password: string): Promise<string | null> => {
+      const res = await apiLogin({ email, password });
 
-  // Mock sign up - always succeeds
-  const signUp = React.useCallback((name: string, email: string, _password: string) => {
-    const mockUser: User = {
-      id: '1',
-      email,
-      name,
-    };
-    setUser(mockUser);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(mockUser));
-  }, []);
+      if (res.status !== 200) {
+        return res.data.message;
+      }
+
+      const authedUser = toUser(res.data.user);
+      setUser(authedUser);
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authedUser));
+      localStorage.setItem(TOKEN_STORAGE_KEY, res.data.accessToken);
+      return null;
+    },
+    [],
+  );
+
+  const signUp = React.useCallback(
+    async (name: string, email: string, password: string): Promise<string | null> => {
+      const res = await apiRegister({ email, password, name });
+
+      if (res.status !== 201) {
+        return res.data.message;
+      }
+
+      const authedUser = toUser(res.data.user);
+      setUser(authedUser);
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authedUser));
+      localStorage.setItem(TOKEN_STORAGE_KEY, res.data.accessToken);
+      return null;
+    },
+    [],
+  );
 
   const signOut = React.useCallback(() => {
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   }, []);
 
   const value = React.useMemo(
@@ -67,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signOut,
     }),
-    [user, signIn, signUp, signOut]
+    [user, signIn, signUp, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -76,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = React.useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
