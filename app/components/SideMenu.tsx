@@ -9,8 +9,8 @@ import SvgIcon from '@mui/material/SvgIcon';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import SelectContent from './SelectContent';
 import MenuContent from './MenuContent';
-import CardAlert from './CardAlert';
 import OptionsMenu from './OptionsMenu';
+import { useAuth } from '~/context/AuthContext';
 
 const drawerWidth = 240;
 
@@ -25,7 +25,19 @@ const Drawer = styled(MuiDrawer)({
   },
 });
 
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
 export default function SideMenu() {
+  const { user } = useAuth();
+
   return (
     <Drawer
       variant="permanent"
@@ -81,7 +93,6 @@ export default function SideMenu() {
         }}
       >
         <MenuContent />
-        <CardAlert />
       </Box>
       <Stack
         direction="row"
@@ -95,16 +106,18 @@ export default function SideMenu() {
       >
         <Avatar
           sizes="small"
-          alt="Riley Carter"
-          src="/static/images/avatar/7.jpg"
+          alt={user?.name ?? 'User'}
+          src={user?.profileImageUrl}
           sx={{ width: 36, height: 36 }}
-        />
+        >
+          {user?.name ? getInitials(user.name) : null}
+        </Avatar>
         <Box sx={{ mr: 'auto' }}>
           <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: '16px' }}>
-            Riley Carter
+            {user?.name ?? 'User'}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            riley@email.com
+            {user?.email ?? ''}
           </Typography>
         </Box>
         <OptionsMenu />

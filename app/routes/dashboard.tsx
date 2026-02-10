@@ -6,6 +6,7 @@ import AppNavbar from '../components/AppNavbar';
 import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
 import { useAuth } from '~/context/AuthContext';
+import { OrgProvider } from '~/context/OrgContext';
 
 export default function Dashboard() {
   const { isAuthenticated } = useAuth();
@@ -15,6 +16,7 @@ export default function Dashboard() {
   }
 
   return (
+    <OrgProvider>
     <Box sx={{ display: 'flex' }}>
       <SideMenu />
       <AppNavbar />
@@ -43,5 +45,6 @@ export default function Dashboard() {
         </Stack>
       </Box>
     </Box>
+    </OrgProvider>
   );
 }

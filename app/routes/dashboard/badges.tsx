@@ -1,15 +1,43 @@
+import * as React from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import BadgeCollectionCarousel, {
-  useCollections,
-  MOCK_COLLECTIONS,
-  MOCK_CREATED,
-} from '~/components/BadgeCollectionCarousel';
+import { useNavigate } from 'react-router';
+import BadgeCollectionCarousel from '~/components/BadgeCollectionCarousel';
+import { useOrg } from '~/context/OrgContext';
+import { listCollections } from '~/api/generated';
+import type { Collection } from '~/api/generated';
 
 export default function Badges() {
-  const { collections, isLoading: collectionsLoading } = useCollections(MOCK_COLLECTIONS);
-  const { collections: created, isLoading: createdLoading } = useCollections(MOCK_CREATED);
+  const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const [libraryCollections, setLibraryCollections] = React.useState<Collection[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!activeOrg) return;
+    let cancelled = false;
+
+    async function fetchCollections() {
+      setIsLoading(true);
+      const res = await listCollections({ orgId: activeOrg!.org.id });
+      if (!cancelled && res.status === 200) {
+        setLibraryCollections(res.data.data);
+      }
+      if (!cancelled) setIsLoading(false);
+    }
+
+    fetchCollections();
+    return () => { cancelled = true; };
+  }, [activeOrg]);
+
+  const createdCollections = activeOrg
+    ? libraryCollections.filter((c) => c.createdByOrgId === activeOrg.org.id)
+    : [];
+
+  const handleCollectionClick = (collection: Collection) => {
+    navigate(`/home/badges/${collection.id}`);
+  };
 
   return (
     <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' } }}>
@@ -20,13 +48,15 @@ export default function Badges() {
       <Stack spacing={3}>
         <BadgeCollectionCarousel
           title="Collections"
-          collections={collections}
-          isLoading={collectionsLoading}
+          collections={libraryCollections}
+          isLoading={isLoading}
+          onCardClick={handleCollectionClick}
         />
         <BadgeCollectionCarousel
           title="Created"
-          collections={created}
-          isLoading={createdLoading}
+          collections={createdCollections}
+          isLoading={isLoading}
+          onCardClick={handleCollectionClick}
         />
       </Stack>
     </Box>

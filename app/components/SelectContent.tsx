@@ -1,14 +1,15 @@
-import * as React from 'react';
 import MuiAvatar from '@mui/material/Avatar';
 import MuiListItemAvatar from '@mui/material/ListItemAvatar';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import Select, { SelectChangeEvent, selectClasses } from '@mui/material/Select';
+import Select, { type SelectChangeEvent, selectClasses } from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
+import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
+import { useOrg } from '~/context/OrgContext';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
   width: 28,
@@ -23,18 +24,33 @@ const ListItemAvatar = styled(MuiListItemAvatar)({
   marginRight: 12,
 });
 
+const ROLE_LABELS: Record<string, string> = {
+  owner: 'Owner',
+  admin: 'Org admin',
+  issuer: 'Badge issuer',
+  viewer: 'Viewer',
+};
+
 export default function SelectContent() {
-  const [org, setOrg] = React.useState('');
+  const { orgs, activeOrg, selectOrg, isLoading } = useOrg();
 
   const handleChange = (event: SelectChangeEvent) => {
-    setOrg(event.target.value as string);
+    selectOrg(event.target.value);
   };
+
+  if (isLoading) {
+    return (
+      <Typography variant="body2" sx={{ p: 1, color: 'text.secondary' }}>
+        Loading...
+      </Typography>
+    );
+  }
 
   return (
     <Select
       labelId="org-select"
       id="org-simple-select"
-      value={org}
+      value={activeOrg?.org.id ?? ''}
       onChange={handleChange}
       displayEmpty
       inputProps={{ 'aria-label': 'Select organization' }}
@@ -53,32 +69,21 @@ export default function SelectContent() {
         },
       }}
     >
-      <MenuItem value="">
-        <ListItemAvatar>
-          <Avatar alt="Cert-R-Us">
-            <BusinessRoundedIcon sx={{ fontSize: '1rem' }} />
-          </Avatar>
-        </ListItemAvatar>
-        <ListItemText primary="Cert-R-Us" secondary="Badge creator" />
-      </MenuItem>
-      <MenuItem value={10}>
-        <ListItemAvatar>
-          <Avatar alt="Edu System">
-            <BusinessRoundedIcon sx={{ fontSize: '1rem' }} />
-          </Avatar>
-        </ListItemAvatar>
-        <ListItemText primary="Edu System" secondary="Org admin" />
-      </MenuItem>
-      <MenuItem value={20}>
-        <ListItemAvatar>
-          <Avatar alt="Learner Help">
-            <BusinessRoundedIcon sx={{ fontSize: '1rem' }} />
-          </Avatar>
-        </ListItemAvatar>
-        <ListItemText primary="Learner Help" secondary="Badge issuer" />
-      </MenuItem>
+      {orgs.map(({ org, membership }) => (
+        <MenuItem key={org.id} value={org.id}>
+          <ListItemAvatar>
+            <Avatar alt={org.name}>
+              <BusinessRoundedIcon sx={{ fontSize: '1rem' }} />
+            </Avatar>
+          </ListItemAvatar>
+          <ListItemText
+            primary={org.name}
+            secondary={ROLE_LABELS[membership.role] ?? membership.role}
+          />
+        </MenuItem>
+      ))}
       <Divider sx={{ mx: -1 }} />
-      <MenuItem value={40}>
+      <MenuItem value="__add_org__" onClick={() => { /* TODO: navigate to create org */ }}>
         <ListItemIcon>
           <AddRoundedIcon />
         </ListItemIcon>

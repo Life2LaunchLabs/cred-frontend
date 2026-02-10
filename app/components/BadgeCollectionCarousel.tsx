@@ -8,109 +8,18 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-
-// ============================================================================
-// TYPES & MOCK DATA
-// ============================================================================
-
-export interface BadgeCollection {
-  id: number;
-  title: string;
-  badgeCount: number;
-  imageUrl: string;
-}
-
-export const MOCK_COLLECTIONS: BadgeCollection[] = [
-  {
-    id: 1,
-    title: 'Safety Certifications',
-    badgeCount: 12,
-    imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=300&h=200&fit=crop',
-  },
-  {
-    id: 2,
-    title: 'Technical Skills',
-    badgeCount: 8,
-    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&h=200&fit=crop',
-  },
-  {
-    id: 3,
-    title: 'Leadership Training',
-    badgeCount: 5,
-    imageUrl: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=300&h=200&fit=crop',
-  },
-  {
-    id: 4,
-    title: 'Compliance',
-    badgeCount: 15,
-    imageUrl: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=300&h=200&fit=crop',
-  },
-  {
-    id: 5,
-    title: 'Professional Development',
-    badgeCount: 20,
-    imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=300&h=200&fit=crop',
-  },
-  {
-    id: 6,
-    title: 'Equipment Operations',
-    badgeCount: 7,
-    imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&h=200&fit=crop',
-  },
-];
-
-export const MOCK_CREATED: BadgeCollection[] = [
-  {
-    id: 101,
-    title: 'Onboarding Basics',
-    badgeCount: 4,
-    imageUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=300&h=200&fit=crop',
-  },
-  {
-    id: 102,
-    title: 'Customer Service',
-    badgeCount: 6,
-    imageUrl: 'https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=300&h=200&fit=crop',
-  },
-  {
-    id: 103,
-    title: 'Quality Assurance',
-    badgeCount: 3,
-    imageUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=300&h=200&fit=crop',
-  },
-];
-
-// ============================================================================
-// MOCK API HOOK
-// ============================================================================
-
-export function useCollections(mockData: BadgeCollection[]) {
-  const [collections, setCollections] = React.useState<BadgeCollection[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setCollections(mockData);
-      setIsLoading(false);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [mockData]);
-
-  return { collections, isLoading };
-}
+import type { Collection } from '~/api/generated';
 
 // ============================================================================
 // COLLECTION CARD COMPONENT
 // ============================================================================
 
 interface CollectionCardProps {
-  collection: BadgeCollection;
-  onClick?: (collection: BadgeCollection) => void;
+  collection: Collection;
+  onClick?: (collection: Collection) => void;
 }
 
-function CollectionCard({ collection, onClick }: CollectionCardProps) {
+export function CollectionCard({ collection, onClick }: CollectionCardProps) {
   return (
     <Card
       sx={{
@@ -123,13 +32,29 @@ function CollectionCard({ collection, onClick }: CollectionCardProps) {
       }}
     >
       <CardActionArea onClick={() => onClick?.(collection)}>
-        <CardMedia
-          component="img"
-          height="120"
-          image={collection.imageUrl}
-          alt={collection.title}
-          sx={{ objectFit: 'cover' }}
-        />
+        {collection.imageUrl ? (
+          <CardMedia
+            component="img"
+            height="120"
+            image={collection.imageUrl}
+            alt={collection.name}
+            sx={{ objectFit: 'cover' }}
+          />
+        ) : (
+          <Box
+            sx={{
+              height: 120,
+              bgcolor: 'grey.200',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              No image
+            </Typography>
+          </Box>
+        )}
         <Box
           sx={{
             px: 1.5,
@@ -146,11 +71,13 @@ function CollectionCard({ collection, onClick }: CollectionCardProps) {
               whiteSpace: 'nowrap',
             }}
           >
-            {collection.title}
+            {collection.name}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {collection.badgeCount} {collection.badgeCount === 1 ? 'badge' : 'badges'}
-          </Typography>
+          {collection.badgeCount != null && (
+            <Typography variant="caption" color="text.secondary">
+              {collection.badgeCount} {collection.badgeCount === 1 ? 'badge' : 'badges'}
+            </Typography>
+          )}
         </Box>
       </CardActionArea>
     </Card>
@@ -163,9 +90,9 @@ function CollectionCard({ collection, onClick }: CollectionCardProps) {
 
 interface BadgeCollectionCarouselProps {
   title: string;
-  collections: BadgeCollection[];
+  collections: Collection[];
   isLoading?: boolean;
-  onCardClick?: (collection: BadgeCollection) => void;
+  onCardClick?: (collection: Collection) => void;
 }
 
 export default function BadgeCollectionCarousel({
@@ -184,11 +111,6 @@ export default function BadgeCollectionCarousel({
         behavior: 'smooth',
       });
     }
-  };
-
-  const handleCardClick = (collection: BadgeCollection) => {
-    onCardClick?.(collection);
-    console.log('Collection clicked:', collection);
   };
 
   return (
@@ -250,12 +172,16 @@ export default function BadgeCollectionCarousel({
                 }}
               />
             ))
+          ) : collections.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+              No collections yet
+            </Typography>
           ) : (
             collections.map((collection) => (
               <CollectionCard
                 key={collection.id}
                 collection={collection}
-                onClick={handleCardClick}
+                onClick={onCardClick}
               />
             ))
           )}

@@ -3,13 +3,9 @@ import {
   login as apiLogin,
   register as apiRegister,
 } from "~/api/generated";
-import type { User as ApiUser } from "~/api/generated";
+import type { User } from "~/api/generated";
 
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+export type { User };
 
 export interface AuthContextValue {
   user: User | null;
@@ -23,14 +19,6 @@ const AuthContext = React.createContext<AuthContextValue | null>(null);
 
 const AUTH_STORAGE_KEY = "auth_user";
 const TOKEN_STORAGE_KEY = "auth_token";
-
-function toUser(apiUser: ApiUser): User {
-  return {
-    id: apiUser.id,
-    email: apiUser.email,
-    name: apiUser.name ?? apiUser.email.split("@")[0],
-  };
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(() => {
@@ -54,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return res.data.message;
       }
 
-      const authedUser = toUser(res.data.user);
+      const authedUser = res.data.user;
       setUser(authedUser);
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authedUser));
       localStorage.setItem(TOKEN_STORAGE_KEY, res.data.accessToken);
@@ -71,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return res.data.message;
       }
 
-      const authedUser = toUser(res.data.user);
+      const authedUser = res.data.user;
       setUser(authedUser);
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authedUser));
       localStorage.setItem(TOKEN_STORAGE_KEY, res.data.accessToken);

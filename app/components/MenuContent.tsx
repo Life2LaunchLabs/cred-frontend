@@ -23,15 +23,17 @@ import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SidebarContext, { type SidebarContextValue } from '../context/SidebarContext';
 import SidebarPageItem from './SidebarPageItem';
+import { useOrg } from '~/context/OrgContext';
 
 const secondaryListItems = [
-  { text: 'Settings', icon: <SettingsRoundedIcon />, path: '/home/settings' },
+  { text: 'Settings', icon: <SettingsRoundedIcon />, path: '/home/user/settings' },
   { text: 'About', icon: <InfoRoundedIcon />, path: '/home/about' },
   { text: 'Feedback', icon: <HelpRoundedIcon />, path: '/home/feedback' },
 ];
 
 export default function MenuContent() {
   const location = useLocation();
+  const { isAdmin } = useOrg();
   const [expandedItemIds, setExpandedItemIds] = React.useState<string[]>([]);
 
   const toggleExpanded = React.useCallback((id: string) => {
@@ -124,16 +126,18 @@ export default function MenuContent() {
                     <ListItemText primary="Browse" />
                   </ListItemButton>
                 </ListItem>
-                <ListItem disablePadding sx={{ display: 'block' }}>
-                  <ListItemButton
-                    component={NavLink}
-                    to="/home/badges/create"
-                    selected={isActive('/home/badges/create')}
-                  >
-                    <ListItemIcon><AddCircleOutlineIcon /></ListItemIcon>
-                    <ListItemText primary="Create" />
-                  </ListItemButton>
-                </ListItem>
+                {isAdmin && (
+                  <ListItem disablePadding sx={{ display: 'block' }}>
+                    <ListItemButton
+                      component={NavLink}
+                      to="/home/badges/create"
+                      selected={isActive('/home/badges/create')}
+                    >
+                      <ListItemIcon><AddCircleOutlineIcon /></ListItemIcon>
+                      <ListItemText primary="Create" />
+                    </ListItemButton>
+                  </ListItem>
+                )}
               </List>
             }
           />
@@ -157,16 +161,18 @@ export default function MenuContent() {
                     <ListItemText primary="All Users" />
                   </ListItemButton>
                 </ListItem>
-                <ListItem disablePadding sx={{ display: 'block' }}>
-                  <ListItemButton
-                    component={NavLink}
-                    to="/home/users/add"
-                    selected={isActive('/home/users/add')}
-                  >
-                    <ListItemIcon><PersonAddIcon /></ListItemIcon>
-                    <ListItemText primary="Add New" />
-                  </ListItemButton>
-                </ListItem>
+                {isAdmin && (
+                  <ListItem disablePadding sx={{ display: 'block' }}>
+                    <ListItemButton
+                      component={NavLink}
+                      to="/home/users/add"
+                      selected={isActive('/home/users/add')}
+                    >
+                      <ListItemIcon><PersonAddIcon /></ListItemIcon>
+                      <ListItemText primary="Add New" />
+                    </ListItemButton>
+                  </ListItem>
+                )}
               </List>
             }
           />
@@ -200,16 +206,18 @@ export default function MenuContent() {
                     <ListItemText primary="Staff" />
                   </ListItemButton>
                 </ListItem>
-                <ListItem disablePadding sx={{ display: 'block' }}>
-                  <ListItemButton
-                    component={NavLink}
-                    to="/home/organization/settings"
-                    selected={isActive('/home/organization/settings')}
-                  >
-                    <ListItemIcon><SettingsOutlinedIcon /></ListItemIcon>
-                    <ListItemText primary="Settings" />
-                  </ListItemButton>
-                </ListItem>
+                {isAdmin && (
+                  <ListItem disablePadding sx={{ display: 'block' }}>
+                    <ListItemButton
+                      component={NavLink}
+                      to="/home/organization/settings"
+                      selected={isActive('/home/organization/settings')}
+                    >
+                      <ListItemIcon><SettingsOutlinedIcon /></ListItemIcon>
+                      <ListItemText primary="Settings" />
+                    </ListItemButton>
+                  </ListItem>
+                )}
               </List>
             }
           />
