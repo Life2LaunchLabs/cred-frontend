@@ -8,10 +8,9 @@ import Typography from '@mui/material/Typography';
 import { alpha } from '@mui/material/styles';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { NavLink, useLocation } from 'react-router';
+import { NavLink, useLocation, useParams } from 'react-router';
 import { getCollection, listCollections } from '~/api/generated';
 import { useOrg } from '~/context/OrgContext';
-import { useOrgPath } from '~/hooks/useOrgPath';
 
 type TreeNode = {
   id: string;
@@ -20,30 +19,37 @@ type TreeNode = {
   children?: TreeNode[];
 };
 
-type TreeSectionData = {
-  sectionTitle: string;
+type BadgesTreeData = {
   nodes: TreeNode[];
-  selectedItemId: string | null;
-  defaultExpandedItemIds: string[];
+};
+
+type BadgesPathState = {
+  inScope: boolean;
+  collectionId: string | null;
+  badgeId: string | null;
 };
 
 const BADGES_STATIC_ROUTES = new Set(['browse', 'create']);
 
-function parseBadgesPath(pathname: string, orgPath: (path?: string) => string) {
-  const badgesRoot = orgPath('/badges');
+function parseBadgesPath(pathname: string, orgSlug?: string): BadgesPathState {
+  if (!orgSlug) {
+    return { inScope: false, collectionId: null, badgeId: null };
+  }
+
+  const badgesRoot = `/${orgSlug}/badges`;
   if (!pathname.startsWith(badgesRoot)) {
-    return { inScope: false as const, collectionId: null, badgeId: null };
+    return { inScope: false, collectionId: null, badgeId: null };
   }
 
   const pathAfterBadges = pathname.slice(badgesRoot.length);
   const [segment1, segment2] = pathAfterBadges.split('/').filter(Boolean);
 
   if (!segment1 || BADGES_STATIC_ROUTES.has(segment1)) {
-    return { inScope: true as const, collectionId: null, badgeId: null };
+    return { inScope: true, collectionId: null, badgeId: null };
   }
 
   return {
-    inScope: true as const,
+    inScope: true,
     collectionId: segment1,
     badgeId: segment2 ?? null,
   };
@@ -78,37 +84,32 @@ function renderTreeNodes(nodes: TreeNode[]) {
 
 export default function ContextualSidebarTree() {
   const { activeOrg } = useOrg();
-  const orgPath = useOrgPath();
+  const { orgSlug } = useParams();
   const location = useLocation();
   const [isLoading, setIsLoading] = React.useState(false);
-  const [sectionData, setSectionData] = React.useState<TreeSectionData | null>(null);
+  const [treeData, setTreeData] = React.useState<BadgesTreeData | null>(null);
+  const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
+  const activeOrgId = activeOrg?.org.id;
 
   const pathState = React.useMemo(
-    () => parseBadgesPath(location.pathname, orgPath),
-    [location.pathname, orgPath]
+    () => parseBadgesPath(location.pathname, orgSlug),
+    [location.pathname, orgSlug]
   );
 
   React.useEffect(() => {
-    if (!activeOrg || !pathState.inScope) {
-      setSectionData(null);
+    if (!activeOrgId || !orgSlug || !pathState.inScope) {
       return;
     }
 
     let cancelled = false;
 
-    async function buildBadgesTree() {
+    async function loadBadgesTree() {
       setIsLoading(true);
+      const collectionsRes = await listCollections({ orgId: activeOrgId });
 
-      const collectionsRes = await listCollections({ orgId: activeOrg.org.id });
       if (cancelled) return;
-
       if (collectionsRes.status !== 200) {
-        setSectionData({
-          sectionTitle: 'Collections',
-          nodes: [],
-          selectedItemId: null,
-          defaultExpandedItemIds: [],
-        });
+        setTreeData({ nodes: [] });
         setIsLoading(false);
         return;
       }
@@ -121,7 +122,7 @@ export default function ContextualSidebarTree() {
               return res.data;
             }
           } catch {
-            // Gracefully degrade to collection-only node
+            // Gracefully degrade to collection-only node.
           }
           return null;
         })
@@ -130,53 +131,57 @@ export default function ContextualSidebarTree() {
       if (cancelled) return;
 
       const detailsByCollectionId = new Map(
-        detailResults.filter((detail): detail is NonNullable<typeof detail> => detail !== null)
+        detailResults
+          .filter((detail): detail is NonNullable<typeof detail> => detail !== null)
           .map((detail) => [detail.id, detail])
       );
 
       const nodes: TreeNode[] = collectionsRes.data.data.map((collection) => {
         const detail = detailsByCollectionId.get(collection.id);
-        const children = detail?.badgeSummaries?.map((badge) => ({
-          id: `badge:${badge.id}`,
-          label: badge.name,
-          to: orgPath(`/badges/${collection.id}/${badge.id}`),
-        })) ?? [];
+        const children =
+          detail?.badgeSummaries?.map((badge) => ({
+            id: `badge:${badge.id}`,
+            label: badge.name,
+            to: `/${orgSlug}/badges/${collection.id}/${badge.id}`,
+          })) ?? [];
 
         return {
           id: `collection:${collection.id}`,
           label: collection.name,
-          to: orgPath(`/badges/${collection.id}`),
+          to: `/${orgSlug}/badges/${collection.id}`,
           children,
         };
       });
 
-      const selectedItemId = pathState.badgeId
-        ? `badge:${pathState.badgeId}`
-        : pathState.collectionId
-          ? `collection:${pathState.collectionId}`
-          : null;
-
-      setSectionData({
-        sectionTitle: 'Collection navigation',
-        nodes,
-        selectedItemId,
-        defaultExpandedItemIds: pathState.collectionId ? [`collection:${pathState.collectionId}`] : [],
-      });
+      setTreeData({ nodes });
       setIsLoading(false);
     }
 
-    buildBadgesTree();
+    loadBadgesTree();
 
     return () => {
       cancelled = true;
     };
-  }, [activeOrg, orgPath, pathState]);
+  }, [activeOrgId, orgSlug, pathState.inScope]);
 
-  const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
+  const selectedItemId = pathState.badgeId
+    ? `badge:${pathState.badgeId}`
+    : pathState.collectionId
+      ? `collection:${pathState.collectionId}`
+      : undefined;
 
   React.useEffect(() => {
-    setExpandedItems(sectionData?.defaultExpandedItemIds ?? []);
-  }, [sectionData]);
+    if (!pathState.inScope) {
+      setTreeData(null);
+      setExpandedItems([]);
+      return;
+    }
+
+    if (pathState.collectionId) {
+      const activeCollection = `collection:${pathState.collectionId}`;
+      setExpandedItems((prev) => (prev.includes(activeCollection) ? prev : [...prev, activeCollection]));
+    }
+  }, [pathState.inScope, pathState.collectionId]);
 
   if (!pathState.inScope) {
     return null;
@@ -188,16 +193,16 @@ export default function ContextualSidebarTree() {
       <Box sx={{ px: 1.5, py: 1.25 }}>
         <Stack spacing={1}>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, px: 0.5 }}>
-            {sectionData?.sectionTitle ?? 'Collection navigation'}
+            Collection navigation
           </Typography>
 
-          {isLoading ? (
+          {isLoading && !treeData ? (
             <Stack alignItems="center" sx={{ py: 2 }}>
               <CircularProgress size={18} />
             </Stack>
           ) : (
             <SimpleTreeView
-              selectedItems={sectionData?.selectedItemId ?? undefined}
+              selectedItems={selectedItemId}
               expandedItems={expandedItems}
               onExpandedItemsChange={(_, itemIds) => setExpandedItems(itemIds)}
               sx={{
@@ -212,7 +217,7 @@ export default function ContextualSidebarTree() {
                 },
               }}
             >
-              {sectionData ? renderTreeNodes(sectionData.nodes) : null}
+              {treeData ? renderTreeNodes(treeData.nodes) : null}
             </SimpleTreeView>
           )}
         </Stack>
