@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import { alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import { Navigate, Outlet } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 import AppNavbar from '../components/AppNavbar';
 import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
@@ -10,9 +11,16 @@ import { OrgProvider } from '~/context/OrgContext';
 
 export default function Dashboard() {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/signin', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   if (!isAuthenticated) {
-    return <Navigate to="/signin" replace />;
+    return null;
   }
 
   return (
