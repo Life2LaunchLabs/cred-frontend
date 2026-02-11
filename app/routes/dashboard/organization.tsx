@@ -20,6 +20,7 @@ import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined';
 import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
 import { useNavigate } from 'react-router';
 import { useOrg } from '~/context/OrgContext';
+import { useOrgPath } from '~/hooks/useOrgPath';
 import { getOrg, getOrgStats, listOrgMembers } from '~/api/generated';
 import type { Org, OrgStats, OrgMemberDetail } from '~/api/generated';
 
@@ -64,6 +65,7 @@ function safeHostname(url: string): string {
 export default function Organization() {
   const { activeOrg, isAdmin } = useOrg();
   const navigate = useNavigate();
+  const orgPath = useOrgPath();
 
   const [org, setOrg] = React.useState<Org | null>(null);
   const [stats, setStats] = React.useState<OrgStats | null>(null);
@@ -235,7 +237,7 @@ export default function Organization() {
             variant="outlined"
             size="small"
             startIcon={<EditRoundedIcon sx={{ fontSize: 16 }} />}
-            onClick={() => navigate('/home/organization/settings')}
+            onClick={() => navigate(orgPath('/organization/settings'))}
             sx={{
               alignSelf: { xs: 'center', sm: 'flex-end' },
               mb: { sm: 0.5 },
@@ -427,7 +429,7 @@ export default function Organization() {
             {sortedMembers.length > 6 && (
               <Button
                 size="small"
-                onClick={() => navigate('/home/organization/staff')}
+                onClick={() => navigate(orgPath('/organization/staff'))}
                 sx={{ textTransform: 'none' }}
               >
                 View all ({sortedMembers.length})

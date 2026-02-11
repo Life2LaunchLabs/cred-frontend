@@ -15,6 +15,7 @@ import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import { useNavigate, useParams } from 'react-router';
 import { getCollection, getOrg } from '~/api/generated';
+import { useOrgPath } from '~/hooks/useOrgPath';
 import type { CollectionDetail, Org } from '~/api/generated';
 
 function getInitials(name: string): string {
@@ -36,6 +37,7 @@ function formatDate(iso?: string): string {
 export default function BadgesDetail() {
   const { collectionId } = useParams();
   const navigate = useNavigate();
+  const orgPath = useOrgPath();
 
   const [collection, setCollection] = React.useState<CollectionDetail | null>(null);
   const [creatorOrg, setCreatorOrg] = React.useState<Org | null>(null);
@@ -118,7 +120,7 @@ export default function BadgesDetail() {
         </Typography>
         <Button
           startIcon={<ArrowBackRoundedIcon />}
-          onClick={() => navigate('/home/badges')}
+          onClick={() => navigate(orgPath('/badges'))}
           sx={{ textTransform: 'none' }}
         >
           Back to Badges
@@ -192,7 +194,7 @@ export default function BadgesDetail() {
         <Button
           size="small"
           startIcon={<ArrowBackRoundedIcon />}
-          onClick={() => navigate('/home/badges')}
+          onClick={() => navigate(orgPath('/badges'))}
           sx={{ textTransform: 'none' }}
         >
           Back to Badges
@@ -305,12 +307,14 @@ export default function BadgesDetail() {
               <Paper
                 key={badge.id}
                 variant="outlined"
+                onClick={() => navigate(orgPath(`/badges/${collectionId}/${badge.id}`))}
                 sx={{
                   p: 2,
                   width: { xs: '100%', sm: 260 },
                   display: 'flex',
                   gap: 1.5,
                   alignItems: 'center',
+                  cursor: 'pointer',
                   transition: 'border-color 0.15s',
                   '&:hover': { borderColor: 'primary.main' },
                 }}

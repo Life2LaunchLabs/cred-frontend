@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
+import { useNavigate } from 'react-router';
 import { useOrg } from '~/context/OrgContext';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
@@ -33,9 +34,15 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default function SelectContent() {
   const { orgs, activeOrg, selectOrg, isLoading } = useOrg();
+  const navigate = useNavigate();
 
   const handleChange = (event: SelectChangeEvent) => {
-    selectOrg(event.target.value);
+    const orgId = event.target.value;
+    selectOrg(orgId);
+    const selected = orgs.find((m) => m.org.id === orgId);
+    if (selected) {
+      navigate(`/${selected.org.slug}`);
+    }
   };
 
   if (isLoading) {

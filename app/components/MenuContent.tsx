@@ -24,16 +24,12 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SidebarContext, { type SidebarContextValue } from '../context/SidebarContext';
 import SidebarPageItem from './SidebarPageItem';
 import { useOrg } from '~/context/OrgContext';
-
-const secondaryListItems = [
-  { text: 'Settings', icon: <SettingsRoundedIcon />, path: '/home/user/settings' },
-  { text: 'About', icon: <InfoRoundedIcon />, path: '/home/about' },
-  { text: 'Feedback', icon: <HelpRoundedIcon />, path: '/home/feedback' },
-];
+import { useOrgPath } from '~/hooks/useOrgPath';
 
 export default function MenuContent() {
   const location = useLocation();
   const { isAdmin } = useOrg();
+  const orgPath = useOrgPath();
   const [expandedItemIds, setExpandedItemIds] = React.useState<string[]>([]);
 
   const toggleExpanded = React.useCallback((id: string) => {
@@ -52,13 +48,13 @@ export default function MenuContent() {
     const path = location.pathname;
     const sectionsToExpand: string[] = [];
 
-    if (path.startsWith('/home/badges')) {
+    if (path.includes('/badges')) {
       sectionsToExpand.push('badges');
     }
-    if (path.startsWith('/home/users')) {
+    if (path.includes('/users')) {
       sectionsToExpand.push('users');
     }
-    if (path.startsWith('/home/organization')) {
+    if (path.includes('/organization')) {
       sectionsToExpand.push('organization');
     }
 
@@ -71,8 +67,8 @@ export default function MenuContent() {
   }, [location.pathname]);
 
   const isActive = (path: string) => {
-    if (path === '/home') {
-      return location.pathname === '/home';
+    if (path === orgPath()) {
+      return location.pathname === orgPath();
     }
     return location.pathname === path;
   };
@@ -80,6 +76,12 @@ export default function MenuContent() {
   const isInSection = (basePath: string) => {
     return location.pathname.startsWith(basePath);
   };
+
+  const secondaryListItems = [
+    { text: 'Settings', icon: <SettingsRoundedIcon />, path: orgPath('/user/settings') },
+    { text: 'About', icon: <InfoRoundedIcon />, path: orgPath('/about') },
+    { text: 'Feedback', icon: <HelpRoundedIcon />, path: orgPath('/feedback') },
+  ];
 
   return (
     <SidebarContext.Provider value={sidebarContextValue}>
@@ -89,8 +91,8 @@ export default function MenuContent() {
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               component={NavLink}
-              to="/home"
-              selected={isActive('/home')}
+              to={orgPath()}
+              selected={isActive(orgPath())}
             >
               <ListItemIcon><HomeRoundedIcon /></ListItemIcon>
               <ListItemText primary="Home" />
@@ -102,15 +104,15 @@ export default function MenuContent() {
             id="badges"
             title="Badges"
             icon={<BadgeRoundedIcon />}
-            href="/home/badges"
-            selected={isInSection('/home/badges')}
+            href={orgPath('/badges')}
+            selected={isInSection(orgPath('/badges'))}
             nestedNavigation={
               <List dense sx={{ pl: 2 }}>
                 <ListItem disablePadding sx={{ display: 'block' }}>
                   <ListItemButton
                     component={NavLink}
-                    to="/home/badges"
-                    selected={isActive('/home/badges')}
+                    to={orgPath('/badges')}
+                    selected={isActive(orgPath('/badges'))}
                   >
                     <ListItemIcon><LibraryBooksIcon /></ListItemIcon>
                     <ListItemText primary="Library" />
@@ -119,8 +121,8 @@ export default function MenuContent() {
                 <ListItem disablePadding sx={{ display: 'block' }}>
                   <ListItemButton
                     component={NavLink}
-                    to="/home/badges/browse"
-                    selected={isActive('/home/badges/browse')}
+                    to={orgPath('/badges/browse')}
+                    selected={isActive(orgPath('/badges/browse'))}
                   >
                     <ListItemIcon><SearchIcon /></ListItemIcon>
                     <ListItemText primary="Browse" />
@@ -130,8 +132,8 @@ export default function MenuContent() {
                   <ListItem disablePadding sx={{ display: 'block' }}>
                     <ListItemButton
                       component={NavLink}
-                      to="/home/badges/create"
-                      selected={isActive('/home/badges/create')}
+                      to={orgPath('/badges/create')}
+                      selected={isActive(orgPath('/badges/create'))}
                     >
                       <ListItemIcon><AddCircleOutlineIcon /></ListItemIcon>
                       <ListItemText primary="Create" />
@@ -147,15 +149,15 @@ export default function MenuContent() {
             id="users"
             title="Users"
             icon={<PeopleRoundedIcon />}
-            href="/home/users"
-            selected={isInSection('/home/users')}
+            href={orgPath('/users')}
+            selected={isInSection(orgPath('/users'))}
             nestedNavigation={
               <List dense sx={{ pl: 2 }}>
                 <ListItem disablePadding sx={{ display: 'block' }}>
                   <ListItemButton
                     component={NavLink}
-                    to="/home/users"
-                    selected={isActive('/home/users')}
+                    to={orgPath('/users')}
+                    selected={isActive(orgPath('/users'))}
                   >
                     <ListItemIcon><GroupIcon /></ListItemIcon>
                     <ListItemText primary="All Users" />
@@ -165,8 +167,8 @@ export default function MenuContent() {
                   <ListItem disablePadding sx={{ display: 'block' }}>
                     <ListItemButton
                       component={NavLink}
-                      to="/home/users/add"
-                      selected={isActive('/home/users/add')}
+                      to={orgPath('/users/add')}
+                      selected={isActive(orgPath('/users/add'))}
                     >
                       <ListItemIcon><PersonAddIcon /></ListItemIcon>
                       <ListItemText primary="Add New" />
@@ -182,15 +184,15 @@ export default function MenuContent() {
             id="organization"
             title="Organization"
             icon={<BusinessRoundedIcon />}
-            href="/home/organization"
-            selected={isInSection('/home/organization')}
+            href={orgPath('/organization')}
+            selected={isInSection(orgPath('/organization'))}
             nestedNavigation={
               <List dense sx={{ pl: 2 }}>
                 <ListItem disablePadding sx={{ display: 'block' }}>
                   <ListItemButton
                     component={NavLink}
-                    to="/home/organization"
-                    selected={isActive('/home/organization')}
+                    to={orgPath('/organization')}
+                    selected={isActive(orgPath('/organization'))}
                   >
                     <ListItemIcon><InfoOutlinedIcon /></ListItemIcon>
                     <ListItemText primary="Details" />
@@ -199,8 +201,8 @@ export default function MenuContent() {
                 <ListItem disablePadding sx={{ display: 'block' }}>
                   <ListItemButton
                     component={NavLink}
-                    to="/home/organization/staff"
-                    selected={isActive('/home/organization/staff')}
+                    to={orgPath('/organization/staff')}
+                    selected={isActive(orgPath('/organization/staff'))}
                   >
                     <ListItemIcon><BadgeOutlinedIcon /></ListItemIcon>
                     <ListItemText primary="Staff" />
@@ -210,8 +212,8 @@ export default function MenuContent() {
                   <ListItem disablePadding sx={{ display: 'block' }}>
                     <ListItemButton
                       component={NavLink}
-                      to="/home/organization/settings"
-                      selected={isActive('/home/organization/settings')}
+                      to={orgPath('/organization/settings')}
+                      selected={isActive(orgPath('/organization/settings'))}
                     >
                       <ListItemIcon><SettingsOutlinedIcon /></ListItemIcon>
                       <ListItemText primary="Settings" />

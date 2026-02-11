@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useNavigate } from 'react-router';
 import { useOrg } from '~/context/OrgContext';
+import { useOrgPath } from '~/hooks/useOrgPath';
 import { browseRegistry, listCollections } from '~/api/generated';
 import type { Collection } from '~/api/generated';
 import { CollectionCard } from '~/components/BadgeCollectionCarousel';
@@ -10,6 +11,7 @@ import { CollectionCard } from '~/components/BadgeCollectionCarousel';
 export default function BadgesBrowse() {
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
+  const orgPath = useOrgPath();
   const [browseCollections, setBrowseCollections] = React.useState<Collection[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -87,7 +89,7 @@ export default function BadgesBrowse() {
             <CollectionCard
               key={collection.id}
               collection={collection}
-              onClick={(c) => navigate(`/home/badges/${c.id}`)}
+              onClick={(c) => navigate(orgPath(`/badges/${c.id}`))}
             />
           ))}
         </Box>

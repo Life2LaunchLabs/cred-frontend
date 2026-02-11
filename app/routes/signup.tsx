@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router';
 import Box from '@mui/material/Box';
 import { useAuth } from '~/context/AuthContext';
+import { getSavedOrgSlug } from '~/context/OrgContext';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
@@ -129,7 +130,8 @@ export default function SignUp() {
       setSubmitError(error);
       return;
     }
-    navigate('/home');
+    navigate(`/${getSavedOrgSlug() || '_'}`);
+
   };
 
   return (

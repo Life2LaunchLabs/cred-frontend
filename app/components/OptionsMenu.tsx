@@ -12,6 +12,7 @@ import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import { useNavigate } from 'react-router';
 import MenuButton from './MenuButton';
 import { useAuth } from '~/context/AuthContext';
+import { useOrgPath } from '~/hooks/useOrgPath';
 
 const MenuItem = styled(MuiMenuItem)({
   margin: '2px 0',
@@ -20,6 +21,7 @@ const MenuItem = styled(MuiMenuItem)({
 export default function OptionsMenu() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const orgPath = useOrgPath();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -62,8 +64,8 @@ export default function OptionsMenu() {
           },
         }}
       >
-        <MenuItem onClick={() => { handleClose(); navigate('/home/user/profile'); }}>Profile</MenuItem>
-        <MenuItem onClick={() => { handleClose(); navigate('/home/user/settings'); }}>Settings</MenuItem>
+        <MenuItem onClick={() => { handleClose(); navigate(orgPath('/user/profile')); }}>Profile</MenuItem>
+        <MenuItem onClick={() => { handleClose(); navigate(orgPath('/user/settings')); }}>Settings</MenuItem>
         <Divider />
         <MenuItem
           onClick={handleLogout}

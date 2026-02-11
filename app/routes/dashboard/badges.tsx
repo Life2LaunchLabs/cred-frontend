@@ -5,12 +5,14 @@ import Typography from '@mui/material/Typography';
 import { useNavigate } from 'react-router';
 import BadgeCollectionCarousel from '~/components/BadgeCollectionCarousel';
 import { useOrg } from '~/context/OrgContext';
+import { useOrgPath } from '~/hooks/useOrgPath';
 import { listCollections } from '~/api/generated';
 import type { Collection } from '~/api/generated';
 
 export default function Badges() {
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
+  const orgPath = useOrgPath();
   const [libraryCollections, setLibraryCollections] = React.useState<Collection[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -36,7 +38,7 @@ export default function Badges() {
     : [];
 
   const handleCollectionClick = (collection: Collection) => {
-    navigate(`/home/badges/${collection.id}`);
+    navigate(orgPath(`/badges/${collection.id}`));
   };
 
   return (

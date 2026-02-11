@@ -15,6 +15,13 @@ export interface OrgContextValue {
 const OrgContext = React.createContext<OrgContextValue | null>(null);
 
 const ACTIVE_ORG_KEY = "active_org_id";
+const ACTIVE_ORG_SLUG_KEY = "active_org_slug";
+
+/** Read the saved org slug from localStorage (safe to call outside OrgProvider). */
+export function getSavedOrgSlug(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ACTIVE_ORG_SLUG_KEY);
+}
 
 export function OrgProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -49,10 +56,12 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         const match = fetched.find((m) => m.org.id === savedId);
         if (match) {
           setActiveOrgId(match.org.id);
+          localStorage.setItem(ACTIVE_ORG_SLUG_KEY, match.org.slug);
         } else if (fetched.length > 0) {
-          const firstId = fetched[0].org.id;
-          setActiveOrgId(firstId);
-          localStorage.setItem(ACTIVE_ORG_KEY, firstId);
+          const first = fetched[0];
+          setActiveOrgId(first.org.id);
+          localStorage.setItem(ACTIVE_ORG_KEY, first.org.id);
+          localStorage.setItem(ACTIVE_ORG_SLUG_KEY, first.org.slug);
         }
       }
       setIsLoading(false);
@@ -67,7 +76,11 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   const selectOrg = React.useCallback((orgId: string) => {
     setActiveOrgId(orgId);
     localStorage.setItem(ACTIVE_ORG_KEY, orgId);
-  }, []);
+    const match = orgs.find((m) => m.org.id === orgId);
+    if (match) {
+      localStorage.setItem(ACTIVE_ORG_SLUG_KEY, match.org.slug);
+    }
+  }, [orgs]);
 
   const activeOrg = React.useMemo(
     () => orgs.find((m) => m.org.id === activeOrgId) ?? null,

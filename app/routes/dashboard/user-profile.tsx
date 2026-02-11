@@ -15,6 +15,7 @@ import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import { useNavigate } from 'react-router';
 import { useAuth } from '~/context/AuthContext';
 import { useOrg } from '~/context/OrgContext';
+import { useOrgPath } from '~/hooks/useOrgPath';
 import { getUser } from '~/api/generated';
 import type { User } from '~/api/generated';
 
@@ -45,6 +46,7 @@ export default function UserProfile() {
   const { user: authUser } = useAuth();
   const { orgs } = useOrg();
   const navigate = useNavigate();
+  const orgPath = useOrgPath();
   const [profile, setProfile] = React.useState<User | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -164,7 +166,7 @@ export default function UserProfile() {
           variant="outlined"
           size="small"
           startIcon={<EditRoundedIcon sx={{ fontSize: 16 }} />}
-          onClick={() => navigate('/home/user/settings')}
+          onClick={() => navigate(orgPath('/user/settings'))}
           sx={{
             alignSelf: { xs: 'center', sm: 'flex-end' },
             mb: { sm: 0.5 },
