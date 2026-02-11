@@ -25,6 +25,7 @@ import SidebarContext, { type SidebarContextValue } from '../context/SidebarCont
 import SidebarPageItem from './SidebarPageItem';
 import { useOrg } from '~/context/OrgContext';
 import { useOrgPath } from '~/hooks/useOrgPath';
+import ContextualSidebarTree from './ContextualSidebarTree';
 
 export default function MenuContent() {
   const location = useLocation();
@@ -85,7 +86,7 @@ export default function MenuContent() {
 
   return (
     <SidebarContext.Provider value={sidebarContextValue}>
-      <Stack sx={{ flexGrow: 1, p: 1, justifyContent: 'space-between' }}>
+      <Stack sx={{ flexGrow: 1, p: 1 }}>
         <List dense>
           {/* Home - no subitems */}
           <ListItem disablePadding sx={{ display: 'block' }}>
@@ -225,7 +226,9 @@ export default function MenuContent() {
           />
         </List>
 
-        <List dense>
+        <ContextualSidebarTree />
+
+        <List dense sx={{ mt: 'auto' }}>
           {secondaryListItems.map((item, index) => (
             <ListItem key={index} disablePadding sx={{ display: 'block' }}>
               <ListItemButton
