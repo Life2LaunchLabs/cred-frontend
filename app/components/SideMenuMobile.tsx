@@ -12,7 +12,9 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import { useNavigate } from 'react-router';
 import MenuButton from './MenuButton';
 import MenuContent from './MenuContent';
+import ContextualSidebarTree from './ContextualSidebarTree';
 import { useAuth } from '~/context/AuthContext';
+import { useNavItems } from '~/hooks/useNavItems';
 
 interface SideMenuMobileProps {
   open: boolean | undefined;
@@ -22,6 +24,7 @@ interface SideMenuMobileProps {
 export default function SideMenuMobile({ open, toggleDrawer }: SideMenuMobileProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { primaryItems, secondaryItems } = useNavItems();
 
   const handleLogout = () => {
     signOut();
@@ -94,7 +97,9 @@ export default function SideMenuMobile({ open, toggleDrawer }: SideMenuMobilePro
         </Stack>
         <Divider />
         <Stack sx={{ flexGrow: 1 }}>
-          <MenuContent />
+          <MenuContent primaryItems={primaryItems} secondaryItems={secondaryItems}>
+            <ContextualSidebarTree />
+          </MenuContent>
           <Divider />
         </Stack>
         <Stack sx={{ p: 2 }}>

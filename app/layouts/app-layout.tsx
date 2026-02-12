@@ -35,7 +35,7 @@ function OrgSlugSync() {
   return null;
 }
 
-export default function Dashboard() {
+export default function AppLayout() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 

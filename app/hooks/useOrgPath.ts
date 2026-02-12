@@ -5,7 +5,7 @@ import { useParams } from "react-router";
  *
  * Usage:
  *   const orgPath = useOrgPath();
- *   orgPath("/badges")      → "/:orgSlug/badges"
+ *   orgPath("/credentials")  → "/:orgSlug/credentials"
  *   orgPath()               → "/:orgSlug"
  */
 export function useOrgPath() {

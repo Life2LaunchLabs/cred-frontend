@@ -91,8 +91,8 @@ export default function BadgeDetail() {
   }, [badge?.createdByOrgId]);
 
   const backPath = collectionId
-    ? orgPath(`/badges/${collectionId}`)
-    : orgPath('/badges');
+    ? orgPath(`/credentials/${collectionId}`)
+    : orgPath('/credentials');
 
   if (isLoading) {
     return (

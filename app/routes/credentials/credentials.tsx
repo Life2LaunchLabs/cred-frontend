@@ -38,13 +38,13 @@ export default function Badges() {
     : [];
 
   const handleCollectionClick = (collection: Collection) => {
-    navigate(orgPath(`/badges/${collection.id}`));
+    navigate(orgPath(`/credentials/${collection.id}`));
   };
 
   return (
     <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' } }}>
       <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
-        Badges
+        Credentials
       </Typography>
 
       <Stack spacing={3}>

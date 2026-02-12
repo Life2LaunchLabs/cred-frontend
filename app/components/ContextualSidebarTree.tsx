@@ -36,7 +36,7 @@ function parseBadgesPath(pathname: string, orgSlug?: string): BadgesPathState {
     return { inScope: false, collectionId: null, badgeId: null };
   }
 
-  const badgesRoot = `/${orgSlug}/badges`;
+  const badgesRoot = `/${orgSlug}/credentials`;
   if (!pathname.startsWith(badgesRoot)) {
     return { inScope: false, collectionId: null, badgeId: null };
   }
@@ -142,13 +142,13 @@ export default function ContextualSidebarTree() {
           detail?.badgeSummaries?.map((badge) => ({
             id: `badge:${badge.id}`,
             label: badge.name,
-            to: `/${orgSlug}/badges/${collection.id}/${badge.id}`,
+            to: `/${orgSlug}/credentials/${collection.id}/${badge.id}`,
           })) ?? [];
 
         return {
           id: `collection:${collection.id}`,
           label: collection.name,
-          to: `/${orgSlug}/badges/${collection.id}`,
+          to: `/${orgSlug}/credentials/${collection.id}`,
           children,
         };
       });

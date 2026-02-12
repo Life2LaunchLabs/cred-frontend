@@ -89,7 +89,7 @@ export default function BadgesBrowse() {
             <CollectionCard
               key={collection.id}
               collection={collection}
-              onClick={(c) => navigate(orgPath(`/badges/${c.id}`))}
+              onClick={(c) => navigate(orgPath(`/credentials/${c.id}`))}
             />
           ))}
         </Box>

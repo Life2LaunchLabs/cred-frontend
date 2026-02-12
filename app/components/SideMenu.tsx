@@ -9,8 +9,10 @@ import SvgIcon from '@mui/material/SvgIcon';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import SelectContent from './SelectContent';
 import MenuContent from './MenuContent';
+import ContextualSidebarTree from './ContextualSidebarTree';
 import OptionsMenu from './OptionsMenu';
 import { useAuth } from '~/context/AuthContext';
+import { useNavItems } from '~/hooks/useNavItems';
 
 const drawerWidth = 240;
 
@@ -37,6 +39,7 @@ function getInitials(name: string): string {
 
 export default function SideMenu() {
   const { user } = useAuth();
+  const { primaryItems, secondaryItems } = useNavItems();
 
   return (
     <Drawer
@@ -92,7 +95,9 @@ export default function SideMenu() {
           flexDirection: 'column',
         }}
       >
-        <MenuContent />
+        <MenuContent primaryItems={primaryItems} secondaryItems={secondaryItems}>
+          <ContextualSidebarTree />
+        </MenuContent>
       </Box>
       <Stack
         direction="row"
