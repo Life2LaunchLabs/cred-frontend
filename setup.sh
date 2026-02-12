@@ -32,6 +32,16 @@ echo "✅ npm version: $(npm --version)"
 echo "📦 Installing project dependencies (Material UI, Emotion, MUI-X, React Router, etc.)..."
 npm install
 
+# Create .env with default spec tag if it doesn't exist
+if [ ! -f .env ]; then
+    echo "📝 Creating .env with default SPEC_TAG..."
+    echo "SPEC_TAG=V0.0.0" > .env
+fi
+
+# Pull API spec and generate TypeScript client
+echo "📦 Pulling API spec and generating TypeScript client..."
+npm run api:update
+
 echo ""
 echo "✨ Setup complete! You can now run:"
 echo "   npm run dev    - Start development server"
