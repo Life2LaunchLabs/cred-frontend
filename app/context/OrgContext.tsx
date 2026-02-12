@@ -26,10 +26,7 @@ export function getSavedOrgSlug(): string | null {
 export function OrgProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [orgs, setOrgs] = React.useState<UserOrgMembership[]>([]);
-  const [activeOrgId, setActiveOrgId] = React.useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(ACTIVE_ORG_KEY);
-  });
+  const [activeOrgId, setActiveOrgId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {

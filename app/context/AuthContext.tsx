@@ -10,6 +10,7 @@ export type { User };
 export interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (name: string, email: string, password: string) => Promise<string | null>;
   signOut: () => void;
@@ -21,18 +22,21 @@ const AUTH_STORAGE_KEY = "auth_user";
 const TOKEN_STORAGE_KEY = "auth_token";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = React.useState<User | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [user, setUser] = React.useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = React.useState(true);
+
+  // Restore user from localStorage after hydration (client-only)
+  React.useEffect(() => {
     const stored = localStorage.getItem(AUTH_STORAGE_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        setUser(JSON.parse(stored));
       } catch {
-        return null;
+        // Invalid stored data, ignore
       }
     }
-    return null;
-  });
+    setIsAuthLoading(false);
+  }, []);
 
   const signIn = React.useCallback(
     async (email: string, password: string): Promise<string | null> => {
@@ -78,11 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       isAuthenticated: !!user,
+      isAuthLoading,
       signIn,
       signUp,
       signOut,
     }),
-    [user, signIn, signUp, signOut],
+    [user, isAuthLoading, signIn, signUp, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

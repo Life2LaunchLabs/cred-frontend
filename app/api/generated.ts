@@ -925,6 +925,18 @@ export interface PagedIssueAuthorizationRequests {
 }
 
 /**
+ * Current cohort status.
+ */
+export type CohortStatus = typeof CohortStatus[keyof typeof CohortStatus];
+
+
+export const CohortStatus = {
+  active: 'active',
+  draft: 'draft',
+  archived: 'archived',
+} as const;
+
+/**
  * A named group of learners within an organization.
  */
 export interface Cohort {
@@ -934,8 +946,18 @@ export interface Cohort {
   orgId: string;
   /** Cohort display name. */
   name: string;
+  /** URL-safe identifier for routing. */
+  slug: string;
   /** Optional description of the cohort. */
   description?: string;
+  /** Current cohort status. */
+  status: CohortStatus;
+  /** Optional cover image URL for display. */
+  coverImageUrl?: string;
+  /** Member IDs of staff assigned to this cohort. */
+  assignedStaffIds?: string[];
+  /** Number of learners in this cohort. */
+  learnerCount?: number;
   createdAt?: ISODateTime;
   updatedAt?: ISODateTime;
 }
@@ -944,6 +966,18 @@ export type CohortDetail = Cohort & {
   /** Learners in this cohort. */
   learners?: Learner[];
 };
+
+/**
+ * Cohort status (defaults to draft).
+ */
+export type CohortCreateRequestStatus = typeof CohortCreateRequestStatus[keyof typeof CohortCreateRequestStatus];
+
+
+export const CohortCreateRequestStatus = {
+  active: 'active',
+  draft: 'draft',
+  archived: 'archived',
+} as const;
 
 /**
  * Payload for creating a cohort.
@@ -956,11 +990,32 @@ export interface CohortCreateRequest {
    */
   name: string;
   /**
+   * URL-safe identifier.
+   * @minLength 1
+   * @maxLength 255
+   */
+  slug: string;
+  /**
    * Optional description.
    * @maxLength 2000
    */
   description?: string;
+  /** Cohort status (defaults to draft). */
+  status?: CohortCreateRequestStatus;
+  /** Optional cover image URL. */
+  coverImageUrl?: string;
+  /** Member IDs of staff to assign. */
+  assignedStaffIds?: string[];
 }
+
+export type CohortUpdateRequestStatus = typeof CohortUpdateRequestStatus[keyof typeof CohortUpdateRequestStatus];
+
+
+export const CohortUpdateRequestStatus = {
+  active: 'active',
+  draft: 'draft',
+  archived: 'archived',
+} as const;
 
 /**
  * Partial update for a cohort.
@@ -971,8 +1026,16 @@ export interface CohortUpdateRequest {
    * @maxLength 255
    */
   name?: string;
+  /**
+   * @minLength 1
+   * @maxLength 255
+   */
+  slug?: string;
   /** @maxLength 2000 */
   description?: string;
+  status?: CohortUpdateRequestStatus;
+  coverImageUrl?: string;
+  assignedStaffIds?: string[];
 }
 
 /**
@@ -1145,7 +1208,24 @@ pageSize?: PageSizeParameter;
  * Keyword search.
  */
 q?: QueryParameter;
+/**
+ * Filter by cohort status.
+ */
+status?: ListCohortsStatus;
+/**
+ * Filter cohorts where this member is assigned.
+ */
+staffId?: string;
 };
+
+export type ListCohortsStatus = typeof ListCohortsStatus[keyof typeof ListCohortsStatus];
+
+
+export const ListCohortsStatus = {
+  active: 'active',
+  draft: 'draft',
+  archived: 'archived',
+} as const;
 
 export type ListUsersParams = {
 /**
@@ -5090,15 +5170,15 @@ export const getCreateIssuanceResponseMock = (overrideResponse: Partial< Issuanc
 
 export const getListIssuancesResponseMock = (overrideResponse: Partial< PagedIssuances > = {}): PagedIssuances => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), learnerId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), assertionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['issued','revoked'] as const), issuedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', revokedAt: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z',null,]), undefined])})), ...overrideResponse})
 
-export const getListCohortsResponseMock = (overrideResponse: Partial< PagedCohorts > = {}): PagedCohorts => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
+export const getListCohortsResponseMock = (overrideResponse: Partial< PagedCohorts > = {}): PagedCohorts => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), status: faker.helpers.arrayElement(['active','draft','archived'] as const), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), assignedStaffIds: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), undefined]), learnerCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
 
-export const getCreateCohortResponseMock = (overrideResponse: Partial< Cohort > = {}): Cohort => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
+export const getCreateCohortResponseMock = (overrideResponse: Partial< Cohort > = {}): Cohort => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), status: faker.helpers.arrayElement(['active','draft','archived'] as const), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), assignedStaffIds: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), undefined]), learnerCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
-export const getGetCohortResponseMock = (): CohortDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{learners: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), undefined])},})
+export const getGetCohortResponseMock = (): CohortDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), status: faker.helpers.arrayElement(['active','draft','archived'] as const), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), assignedStaffIds: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), undefined]), learnerCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{learners: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), undefined])},})
 
-export const getUpdateCohortResponseMock = (overrideResponse: Partial< Cohort > = {}): Cohort => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
+export const getUpdateCohortResponseMock = (overrideResponse: Partial< Cohort > = {}): Cohort => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), status: faker.helpers.arrayElement(['active','draft','archived'] as const), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), assignedStaffIds: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), undefined]), learnerCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
-export const getAddCohortLearnersResponseMock = (): CohortDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{learners: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), undefined])},})
+export const getAddCohortLearnersResponseMock = (): CohortDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), status: faker.helpers.arrayElement(['active','draft','archived'] as const), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), assignedStaffIds: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), undefined]), learnerCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{learners: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), undefined])},})
 
 export const getListUsersResponseMock = (overrideResponse: Partial< PagedUsers > = {}): PagedUsers => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.internet.email(), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), profileImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), bio: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 500}}), undefined]), title: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
 

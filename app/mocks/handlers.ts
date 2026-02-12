@@ -1,10 +1,13 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, passthrough } from "msw";
 import type {
   AuthResponse,
   Badge,
   Collection,
   CollectionDetail,
   CollectionStats,
+  Cohort,
+  CohortDetail,
+  Learner,
   LoginRequest,
   ListUserOrgs200,
   Org,
@@ -743,9 +746,188 @@ const FAKE_ORG_STATS: Record<string, OrgStats> = {
   },
 };
 
+// ---------- Learners ----------
+
+const FAKE_LEARNERS: Learner[] = [
+  { id: "lrn_1", name: "Alex Rivera", email: "alex.rivera@example.com", createdAt: "2024-01-15T08:00:00Z" },
+  { id: "lrn_2", name: "Jordan Smith", email: "jordan.smith@example.com", createdAt: "2024-01-20T09:00:00Z" },
+  { id: "lrn_3", name: "Taylor Johnson", email: "taylor.johnson@example.com", createdAt: "2024-02-05T10:00:00Z" },
+  { id: "lrn_4", name: "Morgan Lee", email: "morgan.lee@example.com", createdAt: "2024-02-10T11:00:00Z" },
+  { id: "lrn_5", name: "Casey Brown", email: "casey.brown@example.com", createdAt: "2024-02-15T12:00:00Z" },
+  { id: "lrn_6", name: "Riley Garcia", email: "riley.garcia@example.com", createdAt: "2024-03-01T08:00:00Z" },
+  { id: "lrn_7", name: "Jamie Martinez", email: "jamie.martinez@example.com", createdAt: "2024-03-05T09:00:00Z" },
+  { id: "lrn_8", name: "Avery Davis", email: "avery.davis@example.com", createdAt: "2024-03-10T10:00:00Z" },
+  { id: "lrn_9", name: "Quinn Rodriguez", email: "quinn.rodriguez@example.com", createdAt: "2024-03-15T11:00:00Z" },
+  { id: "lrn_10", name: "Drew Wilson", email: "drew.wilson@example.com", createdAt: "2024-04-01T08:00:00Z" },
+  { id: "lrn_11", name: "Dakota Anderson", email: "dakota.anderson@example.com", createdAt: "2024-04-05T09:00:00Z" },
+  { id: "lrn_12", name: "Cameron Thomas", email: "cameron.thomas@example.com", createdAt: "2024-04-10T10:00:00Z" },
+  { id: "lrn_13", name: "Sage Jackson", email: "sage.jackson@example.com", createdAt: "2024-04-15T11:00:00Z" },
+  { id: "lrn_14", name: "River White", email: "river.white@example.com", createdAt: "2024-05-01T08:00:00Z" },
+  { id: "lrn_15", name: "Skyler Harris", email: "skyler.harris@example.com", createdAt: "2024-05-05T09:00:00Z" },
+  { id: "lrn_16", name: "Phoenix Martin", email: "phoenix.martin@example.com", createdAt: "2024-05-10T10:00:00Z" },
+  { id: "lrn_17", name: "Rowan Thompson", email: "rowan.thompson@example.com", createdAt: "2024-05-15T11:00:00Z" },
+  { id: "lrn_18", name: "Indigo Moore", email: "indigo.moore@example.com", createdAt: "2024-06-01T08:00:00Z" },
+];
+
+// ---------- Cohorts ----------
+
+const FAKE_COHORTS: Cohort[] = [
+  // Active cohorts
+  {
+    id: "coh_1",
+    orgId: "org_1",
+    name: "Fall 2025 Cohort",
+    slug: "fall-2025-cohort",
+    description: "Full-time learners starting in Fall 2025 semester.",
+    status: "active",
+    coverImageUrl: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400&h=300&fit=crop",
+    assignedStaffIds: ["mem_1", "mem_4"],
+    learnerCount: 8,
+    createdAt: "2025-09-01T08:00:00Z",
+    updatedAt: "2025-09-05T10:00:00Z",
+  },
+  {
+    id: "coh_2",
+    orgId: "org_1",
+    name: "Safety Training Cohort",
+    slug: "safety-training-cohort",
+    description: "Focused on OSHA and workplace safety certifications.",
+    status: "active",
+    coverImageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=400&h=300&fit=crop",
+    assignedStaffIds: ["mem_5"],
+    learnerCount: 6,
+    createdAt: "2025-08-15T09:00:00Z",
+    updatedAt: "2025-08-20T11:00:00Z",
+  },
+  {
+    id: "coh_3",
+    orgId: "org_1",
+    name: "Technical Skills Track",
+    slug: "technical-skills-track",
+    description: "Learners pursuing technical badges (Git, Docker, Cloud, APIs).",
+    status: "active",
+    coverImageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
+    assignedStaffIds: ["mem_1", "mem_4", "mem_5"],
+    learnerCount: 5,
+    createdAt: "2025-07-10T10:00:00Z",
+    updatedAt: "2025-08-01T12:00:00Z",
+  },
+  {
+    id: "coh_4",
+    orgId: "org_1",
+    name: "Onboarding - Q4 2025",
+    slug: "onboarding-q4-2025",
+    description: "New hires onboarding in Q4 2025.",
+    status: "active",
+    coverImageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop",
+    assignedStaffIds: ["mem_4"],
+    learnerCount: 4,
+    createdAt: "2025-10-01T08:00:00Z",
+    updatedAt: "2025-10-05T09:00:00Z",
+  },
+  // Draft cohorts
+  {
+    id: "coh_5",
+    orgId: "org_1",
+    name: "Spring 2026 Cohort",
+    slug: "spring-2026-cohort",
+    description: "Planned cohort for Spring 2026 semester (draft).",
+    status: "draft",
+    coverImageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400&h=300&fit=crop",
+    assignedStaffIds: [],
+    learnerCount: 0,
+    createdAt: "2025-11-01T08:00:00Z",
+    updatedAt: "2025-11-02T09:00:00Z",
+  },
+  {
+    id: "coh_6",
+    orgId: "org_1",
+    name: "Leadership Development Track",
+    slug: "leadership-development-track",
+    description: "Cohort for mid-level managers pursuing leadership badges (under development).",
+    status: "draft",
+    coverImageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&h=300&fit=crop",
+    assignedStaffIds: ["mem_1"],
+    learnerCount: 0,
+    createdAt: "2025-10-15T10:00:00Z",
+    updatedAt: "2025-10-20T11:00:00Z",
+  },
+  // Archived cohorts
+  {
+    id: "coh_7",
+    orgId: "org_1",
+    name: "Summer 2025 Cohort",
+    slug: "summer-2025-cohort",
+    description: "Completed summer 2025 program.",
+    status: "archived",
+    coverImageUrl: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&h=300&fit=crop",
+    assignedStaffIds: ["mem_4", "mem_5"],
+    learnerCount: 12,
+    createdAt: "2025-06-01T08:00:00Z",
+    updatedAt: "2025-08-31T17:00:00Z",
+  },
+  // org_2 cohorts
+  {
+    id: "coh_8",
+    orgId: "org_2",
+    name: "Professional Dev Track",
+    slug: "professional-dev-track",
+    description: "Continuous learning for career advancement.",
+    status: "active",
+    coverImageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&h=300&fit=crop",
+    assignedStaffIds: ["mem_2", "mem_7"],
+    learnerCount: 15,
+    createdAt: "2025-08-01T08:00:00Z",
+    updatedAt: "2025-09-01T10:00:00Z",
+  },
+  {
+    id: "coh_9",
+    orgId: "org_2",
+    name: "Leadership Cohort 2025",
+    slug: "leadership-cohort-2025",
+    description: "Executive leadership development program.",
+    status: "active",
+    coverImageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&h=300&fit=crop",
+    assignedStaffIds: ["mem_7"],
+    learnerCount: 8,
+    createdAt: "2025-09-15T08:00:00Z",
+    updatedAt: "2025-10-01T09:00:00Z",
+  },
+];
+
+// Map cohorts to learners
+const FAKE_COHORT_LEARNERS: Record<string, Learner[]> = {
+  coh_1: [FAKE_LEARNERS[0], FAKE_LEARNERS[1], FAKE_LEARNERS[2], FAKE_LEARNERS[3], FAKE_LEARNERS[4], FAKE_LEARNERS[5], FAKE_LEARNERS[6], FAKE_LEARNERS[7]],
+  coh_2: [FAKE_LEARNERS[8], FAKE_LEARNERS[9], FAKE_LEARNERS[10], FAKE_LEARNERS[11], FAKE_LEARNERS[12], FAKE_LEARNERS[13]],
+  coh_3: [FAKE_LEARNERS[14], FAKE_LEARNERS[15], FAKE_LEARNERS[16], FAKE_LEARNERS[17], FAKE_LEARNERS[0]],
+  coh_4: [FAKE_LEARNERS[1], FAKE_LEARNERS[3], FAKE_LEARNERS[5], FAKE_LEARNERS[7]],
+  coh_5: [],
+  coh_6: [],
+  coh_7: [FAKE_LEARNERS[2], FAKE_LEARNERS[4], FAKE_LEARNERS[6], FAKE_LEARNERS[8], FAKE_LEARNERS[10], FAKE_LEARNERS[12], FAKE_LEARNERS[14], FAKE_LEARNERS[16], FAKE_LEARNERS[9], FAKE_LEARNERS[11], FAKE_LEARNERS[13], FAKE_LEARNERS[15]],
+  coh_8: [FAKE_LEARNERS[0], FAKE_LEARNERS[1], FAKE_LEARNERS[2], FAKE_LEARNERS[3], FAKE_LEARNERS[4], FAKE_LEARNERS[5], FAKE_LEARNERS[6], FAKE_LEARNERS[7], FAKE_LEARNERS[8], FAKE_LEARNERS[9], FAKE_LEARNERS[10], FAKE_LEARNERS[11], FAKE_LEARNERS[12], FAKE_LEARNERS[13], FAKE_LEARNERS[14]],
+  coh_9: [FAKE_LEARNERS[15], FAKE_LEARNERS[16], FAKE_LEARNERS[17], FAKE_LEARNERS[0], FAKE_LEARNERS[2], FAKE_LEARNERS[4], FAKE_LEARNERS[6], FAKE_LEARNERS[8]],
+};
+
 // ---------- Handlers ----------
 
 export const handlers = [
+  // CRITICAL: Bypass all /app/ requests (module imports, assets, etc.)
+  // This must be FIRST since MSW uses first-match
+  http.get('/app/*', () => passthrough()),
+  http.post('/app/*', () => passthrough()),
+  http.put('/app/*', () => passthrough()),
+  http.delete('/app/*', () => passthrough()),
+  http.patch('/app/*', () => passthrough()),
+
+  // Bypass Vite HMR and other dev server requests
+  http.get('/@*', () => passthrough()),
+  http.get('/node_modules/*', () => passthrough()),
+  http.get('/*.js', () => passthrough()),
+  http.get('/*.ts', () => passthrough()),
+  http.get('/*.tsx', () => passthrough()),
+  http.get('/*.css', () => passthrough()),
+
+  // API handlers below
   http.post("*/auth/login", async ({ request }) => {
     const body = (await request.json()) as LoginRequest;
 
@@ -877,5 +1059,51 @@ export const handlers = [
 
   http.get("*/users/:userId", () => {
     return HttpResponse.json(FAKE_USER_PROFILE, { status: 200 });
+  }),
+
+  // Cohorts (more specific routes first)
+  http.get("*/orgs/:orgId/cohorts/:cohortId", ({ params }) => {
+    const cohortId = params.cohortId as string;
+    // Support lookup by ID or slug
+    const cohort = FAKE_COHORTS.find(
+      (c) => c.id === cohortId || c.slug === cohortId
+    );
+    if (!cohort) {
+      return HttpResponse.json({ message: "Cohort not found" }, { status: 404 });
+    }
+
+    const detail: CohortDetail = {
+      ...cohort,
+      learners: FAKE_COHORT_LEARNERS[cohort.id] ?? [],
+    };
+
+    return HttpResponse.json(detail, { status: 200 });
+  }),
+
+  http.get("*/orgs/:orgId/cohorts", ({ params, request }) => {
+    const orgId = params.orgId as string;
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status");
+    const staffId = url.searchParams.get("staffId");
+
+    let results = FAKE_COHORTS.filter((c) => c.orgId === orgId);
+
+    if (status) {
+      results = results.filter((c) => c.status === status);
+    }
+
+    if (staffId) {
+      results = results.filter((c) =>
+        c.assignedStaffIds?.includes(staffId)
+      );
+    }
+
+    return HttpResponse.json(
+      {
+        meta: { page: 1, pageSize: 25, totalCount: results.length, totalPages: 1 },
+        data: results,
+      },
+      { status: 200 },
+    );
   }),
 ];

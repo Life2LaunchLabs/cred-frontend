@@ -15,19 +15,29 @@ function OrgSlugSync() {
   const { orgs, activeOrg, selectOrg, isLoading } = useOrg();
   const navigate = useNavigate();
 
+  console.log('[OrgSlugSync] orgSlug:', orgSlug, 'isLoading:', isLoading, 'orgs.length:', orgs.length, 'activeOrg:', activeOrg?.org.slug);
+
   useEffect(() => {
-    if (isLoading || orgs.length === 0) return;
+    console.log('[OrgSlugSync] Effect - checking sync');
+    if (isLoading || orgs.length === 0) {
+      console.log('[OrgSlugSync] Skipping - still loading or no orgs');
+      return;
+    }
 
     const match = orgs.find((m) => m.org.slug === orgSlug);
 
     if (match) {
+      console.log('[OrgSlugSync] Found match:', match.org.slug);
       // URL slug matches an org — sync it as active if needed
       if (activeOrg?.org.id !== match.org.id) {
+        console.log('[OrgSlugSync] Selecting org:', match.org.id);
         selectOrg(match.org.id);
       }
     } else {
+      console.log('[OrgSlugSync] ⚠️  No match for slug:', orgSlug, '- redirecting!');
       // Invalid slug — redirect to the active org or first org
       const fallback = activeOrg ?? orgs[0];
+      console.log('[OrgSlugSync] Redirecting to:', fallback.org.slug);
       navigate(`/${fallback.org.slug}`, { replace: true });
     }
   }, [orgSlug, orgs, activeOrg, selectOrg, isLoading, navigate]);
@@ -36,18 +46,27 @@ function OrgSlugSync() {
 }
 
 export default function AppLayout() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAuthLoading } = useAuth();
   const navigate = useNavigate();
 
+  console.log('[AppLayout] Render - isAuthLoading:', isAuthLoading, 'isAuthenticated:', isAuthenticated);
+
   useEffect(() => {
-    if (!isAuthenticated) {
+    console.log('[AppLayout] Mount/Auth check - isAuthLoading:', isAuthLoading, 'isAuthenticated:', isAuthenticated);
+    // Only redirect if we're done loading and still not authenticated
+    if (!isAuthLoading && !isAuthenticated) {
+      console.log('[AppLayout] ⚠️  Redirecting to signin');
       navigate('/signin', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isAuthLoading, navigate]);
 
-  if (!isAuthenticated) {
+  // Show nothing while loading auth state or if not authenticated
+  if (isAuthLoading || !isAuthenticated) {
+    console.log('[AppLayout] ⏸️  Returning null - not ready');
     return null;
   }
+
+  console.log('[AppLayout] ✅ Rendering authenticated layout');
 
   return (
     <OrgProvider>
