@@ -14,6 +14,18 @@ import type {
   OrgMemberDetail,
   OrgStats,
   User,
+  Program,
+  ProgramDetail,
+  Phase,
+  Checkpoint,
+  CohortProgramAssignment,
+  CohortProgramAssignmentDetail,
+  LearnerProgramAssignment,
+  LearnerProgramAssignmentDetail,
+  CheckpointCompletion,
+  ProgramProgress,
+  PhaseProgress,
+  PhaseDueDate,
 } from "~/api/generated";
 
 const FAKE_USER = {
@@ -908,6 +920,362 @@ const FAKE_COHORT_LEARNERS: Record<string, Learner[]> = {
   coh_9: [FAKE_LEARNERS[15], FAKE_LEARNERS[16], FAKE_LEARNERS[17], FAKE_LEARNERS[0], FAKE_LEARNERS[2], FAKE_LEARNERS[4], FAKE_LEARNERS[6], FAKE_LEARNERS[8]],
 };
 
+// ---------- Programs ----------
+
+const FAKE_PROGRAMS: Record<string, Program> = {
+  prg_1: {
+    id: "prg_1",
+    orgId: "org_1",
+    name: "Leadership Development Track",
+    slug: "leadership-development-track",
+    description: "Comprehensive leadership training program spanning foundation to advanced competencies. Perfect for emerging and established leaders.",
+    imageUrl: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&h=400&fit=crop",
+    status: "active",
+    phaseCount: 3,
+    totalBadgeCount: 9,
+    totalCheckpointCount: 6,
+    createdAt: "2024-09-01T10:00:00Z",
+    updatedAt: "2025-01-10T14:30:00Z",
+  },
+  prg_2: {
+    id: "prg_2",
+    orgId: "org_1",
+    name: "Project Management Certification",
+    slug: "project-management-certification",
+    description: "Industry-standard project management training aligned with PMI standards.",
+    imageUrl: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=400&fit=crop",
+    status: "active",
+    phaseCount: 4,
+    totalBadgeCount: 12,
+    totalCheckpointCount: 8,
+    createdAt: "2024-08-15T09:00:00Z",
+    updatedAt: "2024-12-20T16:00:00Z",
+  },
+  prg_3: {
+    id: "prg_3",
+    orgId: "org_1",
+    name: "Data Analysis Fundamentals",
+    slug: "data-analysis-fundamentals",
+    description: "Introduction to data analysis techniques and tools.",
+    status: "draft",
+    phaseCount: 2,
+    totalBadgeCount: 5,
+    totalCheckpointCount: 3,
+    createdAt: "2025-01-05T11:00:00Z",
+    updatedAt: "2025-02-01T10:00:00Z",
+  },
+  prg_4: {
+    id: "prg_4",
+    orgId: "org_1",
+    name: "Summer 2024 Internship Program",
+    slug: "summer-2024-internship",
+    description: "Legacy internship program from summer 2024.",
+    status: "archived",
+    phaseCount: 2,
+    totalBadgeCount: 4,
+    totalCheckpointCount: 4,
+    createdAt: "2024-05-01T08:00:00Z",
+    updatedAt: "2024-09-30T17:00:00Z",
+  },
+  prg_5: {
+    id: "prg_5",
+    orgId: "org_2",
+    name: "Teaching Excellence Program",
+    slug: "teaching-excellence-program",
+    description: "Professional development for educators.",
+    status: "active",
+    phaseCount: 3,
+    totalBadgeCount: 8,
+    totalCheckpointCount: 5,
+    createdAt: "2024-10-01T09:00:00Z",
+    updatedAt: "2025-01-15T12:00:00Z",
+  },
+};
+
+const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
+  prg_1: [
+    {
+      id: "phs_1",
+      name: "Foundation Leadership Skills",
+      description: "Core competencies every leader needs.",
+      order: 0,
+      badgeIds: ["bdg_1", "bdg_2", "bdg_3"],
+      checkpoints: [
+        { id: "chk_1", label: "Complete personal leadership assessment", isRequired: true },
+        { id: "chk_2", label: "Submit leadership development plan", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_2",
+      name: "Team Leadership",
+      description: "Leading and developing high-performing teams.",
+      order: 1,
+      badgeIds: ["bdg_4", "bdg_5", "bdg_6"],
+      checkpoints: [
+        { id: "chk_3", label: "Complete team project simulation", isRequired: true },
+        { id: "chk_4", label: "Conduct peer feedback session", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_3",
+      name: "Strategic Leadership",
+      description: "Advanced strategic thinking and organizational leadership.",
+      order: 2,
+      badgeIds: ["bdg_7", "bdg_8", "bdg_9"],
+      checkpoints: [
+        { id: "chk_5", label: "Present strategic vision to panel", isRequired: true },
+        { id: "chk_6", label: "Complete capstone project", isRequired: true },
+      ],
+    },
+  ],
+  prg_2: [
+    {
+      id: "phs_4",
+      name: "PM Fundamentals",
+      description: "Core project management principles.",
+      order: 0,
+      badgeIds: ["bdg_10", "bdg_11", "bdg_12"],
+      checkpoints: [
+        { id: "chk_7", label: "Pass PM fundamentals exam", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_5",
+      name: "Planning & Execution",
+      description: "Project planning, scheduling, and execution techniques.",
+      order: 1,
+      badgeIds: ["bdg_13", "bdg_14", "bdg_15"],
+      checkpoints: [
+        { id: "chk_8", label: "Create project charter", isRequired: true },
+        { id: "chk_9", label: "Develop project schedule", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_6",
+      name: "Risk & Quality Management",
+      description: "Managing project risks and ensuring quality.",
+      order: 2,
+      badgeIds: ["bdg_16", "bdg_17", "bdg_18"],
+      checkpoints: [
+        { id: "chk_10", label: "Complete risk assessment", isRequired: true },
+        { id: "chk_11", label: "Implement quality control plan", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_7",
+      name: "Leadership & Communication",
+      description: "Stakeholder management and team communication.",
+      order: 3,
+      badgeIds: ["bdg_19", "bdg_20", "bdg_21"],
+      checkpoints: [
+        { id: "chk_12", label: "Facilitate stakeholder meeting", isRequired: true },
+        { id: "chk_13", label: "Deliver final project presentation", isRequired: true },
+      ],
+    },
+  ],
+  prg_3: [
+    {
+      id: "phs_8",
+      name: "Data Basics",
+      description: "Introduction to data analysis.",
+      order: 0,
+      badgeIds: ["bdg_22", "bdg_23"],
+      checkpoints: [
+        { id: "chk_14", label: "Complete data literacy quiz", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_9",
+      name: "Analysis Tools",
+      description: "Working with data analysis tools.",
+      order: 1,
+      badgeIds: ["bdg_24", "bdg_25", "bdg_26"],
+      checkpoints: [
+        { id: "chk_15", label: "Submit data analysis project", isRequired: true },
+        { id: "chk_16", label: "Present findings to team", isRequired: false },
+      ],
+    },
+  ],
+  prg_4: [
+    {
+      id: "phs_10",
+      name: "Onboarding",
+      description: "Intern orientation and setup.",
+      order: 0,
+      badgeIds: ["bdg_27"],
+      checkpoints: [
+        { id: "chk_17", label: "Complete orientation", isRequired: true },
+        { id: "chk_18", label: "Meet with mentor", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_11",
+      name: "Project Work",
+      description: "Summer internship project completion.",
+      order: 1,
+      badgeIds: ["bdg_28", "bdg_29"],
+      checkpoints: [
+        { id: "chk_19", label: "Mid-summer check-in", isRequired: true },
+        { id: "chk_20", label: "Final presentation", isRequired: true },
+      ],
+    },
+  ],
+  prg_5: [
+    {
+      id: "phs_12",
+      name: "Teaching Foundations",
+      description: "Core teaching methodologies.",
+      order: 0,
+      badgeIds: ["bdg_1", "bdg_2"],
+      checkpoints: [
+        { id: "chk_21", label: "Observe master teacher session", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_13",
+      name: "Classroom Management",
+      description: "Managing diverse classrooms effectively.",
+      order: 1,
+      badgeIds: ["bdg_3", "bdg_4", "bdg_5"],
+      checkpoints: [
+        { id: "chk_22", label: "Implement classroom management plan", isRequired: true },
+        { id: "chk_23", label: "Peer observation feedback", isRequired: true },
+      ],
+    },
+    {
+      id: "phs_14",
+      name: "Assessment & Growth",
+      description: "Student assessment and professional development.",
+      order: 2,
+      badgeIds: ["bdg_6", "bdg_7", "bdg_8"],
+      checkpoints: [
+        { id: "chk_24", label: "Create assessment rubric", isRequired: true },
+        { id: "chk_25", label: "Complete professional development plan", isRequired: true },
+      ],
+    },
+  ],
+};
+
+const FAKE_COHORT_PROGRAM_ASSIGNMENTS: Record<string, CohortProgramAssignment[]> = {
+  coh_1: [
+    {
+      id: "asn_coh_1",
+      cohortId: "coh_1",
+      programId: "prg_1",
+      assignedBy: "usr_1",
+      assignedAt: "2025-01-15T10:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_1", dueDate: "2025-03-01T23:59:59Z" },
+        { phaseId: "phs_2", dueDate: "2025-05-01T23:59:59Z" },
+        { phaseId: "phs_3", dueDate: "2025-07-01T23:59:59Z" },
+      ],
+    },
+  ],
+  coh_7: [
+    {
+      id: "asn_coh_2",
+      cohortId: "coh_7",
+      programId: "prg_2",
+      assignedBy: "usr_1",
+      assignedAt: "2024-12-01T09:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_4", dueDate: "2025-02-15T23:59:59Z" },
+        { phaseId: "phs_5", dueDate: "2025-04-15T23:59:59Z" },
+        { phaseId: "phs_6", dueDate: "2025-06-15T23:59:59Z" },
+        { phaseId: "phs_7", dueDate: "2025-08-15T23:59:59Z" },
+      ],
+    },
+  ],
+};
+
+const FAKE_LEARNER_PROGRAM_ASSIGNMENTS: Record<string, LearnerProgramAssignment[]> = {
+  lrn_1: [
+    {
+      id: "asn_lrn_1",
+      learnerId: "lrn_1",
+      programId: "prg_1",
+      cohortAssignmentId: "asn_coh_1",
+      assignedBy: "usr_1",
+      assignedAt: "2025-01-15T10:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_1", dueDate: "2025-03-01T23:59:59Z" },
+        { phaseId: "phs_2", dueDate: "2025-05-01T23:59:59Z" },
+        { phaseId: "phs_3", dueDate: "2025-07-01T23:59:59Z" },
+      ],
+    },
+  ],
+  lrn_2: [
+    {
+      id: "asn_lrn_2",
+      learnerId: "lrn_2",
+      programId: "prg_1",
+      cohortAssignmentId: "asn_coh_1",
+      assignedBy: "usr_1",
+      assignedAt: "2025-01-15T10:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_1", dueDate: "2025-03-01T23:59:59Z" },
+        { phaseId: "phs_2", dueDate: "2025-05-01T23:59:59Z" },
+        { phaseId: "phs_3", dueDate: "2025-07-01T23:59:59Z" },
+      ],
+    },
+  ],
+  lrn_3: [
+    {
+      id: "asn_lrn_3",
+      learnerId: "lrn_3",
+      programId: "prg_2",
+      assignedBy: "usr_1",
+      assignedAt: "2025-02-01T14:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_4", dueDate: "2025-03-15T23:59:59Z" },
+        { phaseId: "phs_5", dueDate: "2025-05-15T23:59:59Z" },
+        { phaseId: "phs_6", dueDate: "2025-07-15T23:59:59Z" },
+        { phaseId: "phs_7", dueDate: "2025-09-15T23:59:59Z" },
+      ],
+    },
+  ],
+};
+
+const FAKE_CHECKPOINT_COMPLETIONS: Record<string, CheckpointCompletion[]> = {
+  asn_lrn_1: [
+    {
+      id: "chk_cmp_1",
+      assignmentId: "asn_lrn_1",
+      checkpointId: "chk_1",
+      signedBy: "usr_1",
+      signedAt: "2025-02-10T15:30:00Z",
+      notes: "Excellent self-assessment. Shows strong self-awareness.",
+    },
+    {
+      id: "chk_cmp_2",
+      assignmentId: "asn_lrn_1",
+      checkpointId: "chk_2",
+      signedBy: "usr_1",
+      signedAt: "2025-02-25T11:00:00Z",
+      notes: "Clear and actionable development plan submitted.",
+    },
+  ],
+  asn_lrn_2: [
+    {
+      id: "chk_cmp_3",
+      assignmentId: "asn_lrn_2",
+      checkpointId: "chk_1",
+      signedBy: "usr_1",
+      signedAt: "2025-02-12T09:15:00Z",
+    },
+  ],
+  asn_lrn_3: [
+    {
+      id: "chk_cmp_4",
+      assignmentId: "asn_lrn_3",
+      checkpointId: "chk_7",
+      signedBy: "usr_1",
+      signedAt: "2025-02-08T16:45:00Z",
+      notes: "Passed exam with 92%. Strong grasp of fundamentals.",
+    },
+  ],
+};
+
 // ---------- Handlers ----------
 
 export const handlers = [
@@ -1102,6 +1470,134 @@ export const handlers = [
       {
         meta: { page: 1, pageSize: 25, totalCount: results.length, totalPages: 1 },
         data: results,
+      },
+      { status: 200 },
+    );
+  }),
+
+  // Programs
+  http.get("*/orgs/:orgId/programs", ({ params, request }) => {
+    const orgId = params.orgId as string;
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status");
+
+    let results = Object.values(FAKE_PROGRAMS).filter((p) => p.orgId === orgId);
+
+    if (status) {
+      results = results.filter((p) => p.status === status);
+    }
+
+    return HttpResponse.json(
+      {
+        meta: { page: 1, pageSize: 25, totalCount: results.length, totalPages: 1 },
+        data: results,
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get("*/orgs/:orgId/programs/:programSlug", ({ params }) => {
+    const programSlug = params.programSlug as string;
+    const program = Object.values(FAKE_PROGRAMS).find(
+      (p) => p.slug === programSlug || p.id === programSlug
+    );
+    if (!program) {
+      return HttpResponse.json({ message: "Program not found" }, { status: 404 });
+    }
+
+    const detail: ProgramDetail = {
+      ...program,
+      phases: FAKE_PROGRAM_PHASES[program.id] ?? [],
+    };
+
+    return HttpResponse.json(detail, { status: 200 });
+  }),
+
+  http.get("*/orgs/:orgId/cohorts/:cohortId/program-assignments", ({ params }) => {
+    const cohortId = params.cohortId as string;
+    const assignments = FAKE_COHORT_PROGRAM_ASSIGNMENTS[cohortId] ?? [];
+
+    const details: CohortProgramAssignmentDetail[] = assignments.map((asn) => {
+      const program = FAKE_PROGRAMS[asn.programId];
+      const cohort = FAKE_COHORTS.find((c) => c.id === asn.cohortId);
+      return {
+        ...asn,
+        program: {
+          ...program,
+          phases: FAKE_PROGRAM_PHASES[program.id] ?? [],
+        },
+        cohort: cohort ? {
+          id: cohort.id,
+          name: cohort.name,
+          slug: cohort.slug,
+        } : { id: asn.cohortId, name: "Unknown Cohort", slug: "unknown" },
+        learnerAssignmentCount: FAKE_COHORT_LEARNERS[cohortId]?.length ?? 0,
+      };
+    });
+
+    return HttpResponse.json(
+      {
+        meta: { page: 1, pageSize: 25, totalCount: details.length, totalPages: 1 },
+        data: details,
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get("*/orgs/:orgId/learners/:learnerId/program-assignments", ({ params }) => {
+    const learnerId = params.learnerId as string;
+    const assignments = FAKE_LEARNER_PROGRAM_ASSIGNMENTS[learnerId] ?? [];
+
+    const learner = FAKE_LEARNERS.find((l) => l.id === learnerId);
+    const details: LearnerProgramAssignmentDetail[] = assignments.map((asn) => {
+      const program = FAKE_PROGRAMS[asn.programId];
+      const completions = FAKE_CHECKPOINT_COMPLETIONS[asn.id] ?? [];
+
+      // Calculate progress
+      const phases = FAKE_PROGRAM_PHASES[program.id] ?? [];
+      const totalCheckpoints = phases.reduce((sum, phase) => sum + phase.checkpoints.length, 0);
+      const totalBadges = phases.reduce((sum, phase) => sum + phase.badgeIds.length, 0);
+
+      const progress: ProgramProgress = {
+        badgesEarned: 0, // Would be calculated from actual badge issuances
+        badgesTotal: totalBadges,
+        checkpointsSigned: completions.length,
+        checkpointsTotal: totalCheckpoints,
+        phaseProgress: phases.map((phase) => {
+          const phaseCheckpoints = completions.filter((c) =>
+            phase.checkpoints.some((chk) => chk.id === c.checkpointId)
+          );
+          return {
+            phaseId: phase.id,
+            badgesEarned: 0,
+            badgesTotal: phase.badgeIds.length,
+            checkpointsSigned: phaseCheckpoints.length,
+            checkpointsTotal: phase.checkpoints.length,
+            isComplete: false,
+          } satisfies PhaseProgress;
+        }),
+        checkpointCompletions: completions,
+      };
+
+      return {
+        ...asn,
+        program: {
+          ...program,
+          phases,
+        },
+        learner: {
+          id: learner?.id ?? learnerId,
+          name: learner?.name ?? "Unknown Learner",
+          email: learner?.email,
+        },
+        progress,
+      };
+    });
+
+    return HttpResponse.json(
+      {
+        meta: { page: 1, pageSize: 25, totalCount: details.length, totalPages: 1 },
+        data: details,
       },
       { status: 200 },
     );

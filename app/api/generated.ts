@@ -4,7 +4,7 @@
  * Badging App API (v0)
  * v0 OpenAPI spec for org/staff/learner/badge/collection management with JWT auth + RBAC. Auth is enforced by required permissions (vendor extension `x-permissions`) and org-scope checks.
 
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import {
   faker
@@ -1052,6 +1052,336 @@ export interface PagedCohorts {
 }
 
 /**
+ * Current program status.
+ */
+export type ProgramStatus = typeof ProgramStatus[keyof typeof ProgramStatus];
+
+
+export const ProgramStatus = {
+  draft: 'draft',
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+/**
+ * A reusable credential program template containing phases, badges, and checkpoints.
+ */
+export interface Program {
+  /** Unique program identifier. */
+  id: string;
+  /** The organization that created this program. */
+  orgId: string;
+  /** Program display name. */
+  name: string;
+  /**
+   * URL-friendly unique identifier for the program.
+   * @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$
+   */
+  slug: string;
+  /** Detailed program description and objectives. */
+  description?: string;
+  /** Cover image URL for the program. */
+  imageUrl?: string;
+  /** Current program status. */
+  status: ProgramStatus;
+  /** Total number of phases in the program. */
+  phaseCount?: number;
+  /** Total number of badges across all phases. */
+  totalBadgeCount?: number;
+  /** Total number of checkpoints across all phases. */
+  totalCheckpointCount?: number;
+  createdAt?: ISODateTime;
+  updatedAt?: ISODateTime;
+}
+
+/**
+ * A program-specific milestone that requires staff sign-off.
+ */
+export interface Checkpoint {
+  /** Unique checkpoint identifier. */
+  id: string;
+  /** Checkpoint description. */
+  label: string;
+  /** Whether this checkpoint is required for phase completion. */
+  isRequired?: boolean;
+}
+
+/**
+ * A phase within a program containing badges and checkpoints.
+ */
+export interface Phase {
+  /** Unique phase identifier. */
+  id: string;
+  /** Phase display name. */
+  name: string;
+  /** Phase description and learning objectives. */
+  description?: string;
+  /** Display order within the program (0-indexed). */
+  order: number;
+  /** List of badge IDs included in this phase. */
+  badgeIds: string[];
+  /** Checkpoints that must be signed off in this phase. */
+  checkpoints: Checkpoint[];
+}
+
+export type ProgramDetail = Program & {
+  /** Ordered list of phases in this program. */
+  phases?: Phase[];
+};
+
+/**
+ * Initial program status.
+ */
+export type ProgramCreateRequestStatus = typeof ProgramCreateRequestStatus[keyof typeof ProgramCreateRequestStatus];
+
+
+export const ProgramCreateRequestStatus = {
+  draft: 'draft',
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export interface CheckpointCreateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  label: string;
+  isRequired?: boolean;
+}
+
+/**
+ * Phase definition for program creation/update.
+ */
+export interface PhaseCreateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 255
+   */
+  name: string;
+  /** @maxLength 1000 */
+  description?: string;
+  /** @minimum 0 */
+  order: number;
+  badgeIds: string[];
+  checkpoints: CheckpointCreateRequest[];
+}
+
+/**
+ * Payload for creating a program.
+ */
+export interface ProgramCreateRequest {
+  /**
+   * Program name.
+   * @minLength 1
+   * @maxLength 255
+   */
+  name: string;
+  /**
+   * Program description.
+   * @maxLength 2000
+   */
+  description?: string;
+  /** Cover image URL. */
+  imageUrl?: string;
+  /** Initial program status. */
+  status?: ProgramCreateRequestStatus;
+  /** Initial phases for the program. */
+  phases?: PhaseCreateRequest[];
+}
+
+export type ProgramUpdateRequestStatus = typeof ProgramUpdateRequestStatus[keyof typeof ProgramUpdateRequestStatus];
+
+
+export const ProgramUpdateRequestStatus = {
+  draft: 'draft',
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+/**
+ * Payload for updating a program.
+ */
+export interface ProgramUpdateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 255
+   */
+  name?: string;
+  /** @maxLength 2000 */
+  description?: string;
+  imageUrl?: string;
+  status?: ProgramUpdateRequestStatus;
+  phases?: PhaseCreateRequest[];
+}
+
+export interface PagedPrograms {
+  meta: PagedMeta;
+  data: Program[];
+}
+
+/**
+ * Due date for a specific phase within an assignment.
+ */
+export interface PhaseDueDate {
+  /** The phase this due date applies to. */
+  phaseId: string;
+  /** When this phase should be completed. */
+  dueDate: string;
+}
+
+/**
+ * A program assigned to a cohort, creating templates for learner assignments.
+ */
+export interface CohortProgramAssignment {
+  /** Unique assignment identifier. */
+  id: string;
+  /** The cohort receiving the program. */
+  cohortId: string;
+  /** The program being assigned. */
+  programId: string;
+  /** User ID who created the assignment. */
+  assignedBy: string;
+  assignedAt: ISODateTime;
+  /** Optional due dates for each phase (by phase ID). */
+  phaseDueDates?: PhaseDueDate[];
+}
+
+export type CohortProgramAssignmentDetail = CohortProgramAssignment & {
+  program?: ProgramDetail;
+  /** Basic cohort info. */
+  cohort?: {
+  id: string;
+  name: string;
+  slug: string;
+};
+  /** Number of learners with this program assignment. */
+  learnerAssignmentCount?: number;
+};
+
+/**
+ * A program assigned to a learner, either directly or via cohort.
+ */
+export interface LearnerProgramAssignment {
+  /** Unique assignment identifier. */
+  id: string;
+  /** The learner receiving the program. */
+  learnerId: string;
+  /** The program being assigned. */
+  programId: string;
+  /** If assigned via cohort, the cohort assignment ID. */
+  cohortAssignmentId?: string;
+  /** User ID who created the assignment. */
+  assignedBy: string;
+  assignedAt: ISODateTime;
+  /** Due dates for each phase (inherited or custom). */
+  phaseDueDates?: PhaseDueDate[];
+  /** When the learner completed all requirements. */
+  completedAt?: string;
+}
+
+/**
+ * Progress for a single phase.
+ */
+export interface PhaseProgress {
+  phaseId: string;
+  badgesEarned: number;
+  badgesTotal: number;
+  checkpointsSigned: number;
+  checkpointsTotal: number;
+  /** Whether all requirements are met. */
+  isComplete: boolean;
+}
+
+/**
+ * Record of a checkpoint being signed off.
+ */
+export interface CheckpointCompletion {
+  /** Unique completion identifier. */
+  id: string;
+  /** Learner assignment ID. */
+  assignmentId: string;
+  /** The checkpoint that was completed. */
+  checkpointId: string;
+  /** Staff user who signed off. */
+  signedBy: string;
+  signedAt: ISODateTime;
+  /**
+   * Optional notes about the completion.
+   * @maxLength 1000
+   */
+  notes?: string;
+}
+
+/**
+ * Learner's progress through a program.
+ */
+export interface ProgramProgress {
+  /** Number of badges earned. */
+  badgesEarned: number;
+  /** Total badges in program. */
+  badgesTotal: number;
+  /** Number of checkpoints signed. */
+  checkpointsSigned: number;
+  /** Total checkpoints in program. */
+  checkpointsTotal: number;
+  /** Per-phase completion status. */
+  phaseProgress?: PhaseProgress[];
+  /** All checkpoint completions for this assignment. */
+  checkpointCompletions?: CheckpointCompletion[];
+}
+
+export type LearnerProgramAssignmentDetail = LearnerProgramAssignment & {
+  program?: ProgramDetail;
+  /** Basic learner info. */
+  learner?: {
+  id: string;
+  name: string;
+  email?: string;
+};
+  progress?: ProgramProgress;
+};
+
+/**
+ * Payload to assign a program to a cohort.
+ */
+export interface CohortProgramAssignmentCreateRequest {
+  /** Program to assign. */
+  programId: string;
+  phaseDueDates?: PhaseDueDate[];
+}
+
+/**
+ * Payload to assign a program to a learner.
+ */
+export interface LearnerProgramAssignmentCreateRequest {
+  /** Program to assign. */
+  programId: string;
+  phaseDueDates?: PhaseDueDate[];
+}
+
+/**
+ * Payload to sign off on a checkpoint.
+ */
+export interface CheckpointSignRequest {
+  /**
+   * Optional notes about the completion.
+   * @maxLength 1000
+   */
+  notes?: string;
+}
+
+export interface PagedCohortProgramAssignments {
+  meta: PagedMeta;
+  data: CohortProgramAssignmentDetail[];
+}
+
+export interface PagedLearnerProgramAssignments {
+  meta: PagedMeta;
+  data: LearnerProgramAssignmentDetail[];
+}
+
+/**
  * Validation error
  */
 export type BadRequestResponse = ErrorResponse;
@@ -1226,6 +1556,61 @@ export const ListCohortsStatus = {
   draft: 'draft',
   archived: 'archived',
 } as const;
+
+export type ListProgramsParams = {
+/**
+ * Filter by program status.
+ */
+status?: ListProgramsStatus;
+/**
+ * Page number (1-indexed).
+ * @minimum 1
+ */
+page?: PageParameter;
+/**
+ * Number of items per page.
+ * @minimum 1
+ * @maximum 200
+ */
+pageSize?: PageSizeParameter;
+};
+
+export type ListProgramsStatus = typeof ListProgramsStatus[keyof typeof ListProgramsStatus];
+
+
+export const ListProgramsStatus = {
+  draft: 'draft',
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export type ListCohortProgramAssignmentsParams = {
+/**
+ * Page number (1-indexed).
+ * @minimum 1
+ */
+page?: PageParameter;
+/**
+ * Number of items per page.
+ * @minimum 1
+ * @maximum 200
+ */
+pageSize?: PageSizeParameter;
+};
+
+export type ListLearnerProgramAssignmentsParams = {
+/**
+ * Page number (1-indexed).
+ * @minimum 1
+ */
+page?: PageParameter;
+/**
+ * Number of items per page.
+ * @minimum 1
+ * @maximum 200
+ */
+pageSize?: PageSizeParameter;
+};
 
 export type ListUsersParams = {
 /**
@@ -3461,6 +3846,1017 @@ export const removeCohortLearner = async (orgId: string,
 
 
 /**
+ * Returns programs filtered by status.
+ * @summary List programs for an organization
+ */
+export type listProgramsResponse200 = {
+  data: PagedPrograms
+  status: 200
+}
+
+export type listProgramsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type listProgramsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+    
+export type listProgramsResponseSuccess = (listProgramsResponse200) & {
+  headers: Headers;
+};
+export type listProgramsResponseError = (listProgramsResponse401 | listProgramsResponse403) & {
+  headers: Headers;
+};
+
+export type listProgramsResponse = (listProgramsResponseSuccess | listProgramsResponseError)
+
+export const getListProgramsUrl = (orgId: string,
+    params?: ListProgramsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/orgs/${orgId}/programs?${stringifiedParams}` : `/orgs/${orgId}/programs`
+}
+
+export const listPrograms = async (orgId: string,
+    params?: ListProgramsParams, options?: RequestInit): Promise<listProgramsResponse> => {
+  
+  const res = await fetch(getListProgramsUrl(orgId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: listProgramsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listProgramsResponse
+}
+
+
+
+/**
+ * Creates a program template with phases.
+ * @summary Create a new program
+ */
+export type createProgramResponse201 = {
+  data: ProgramDetail
+  status: 201
+}
+
+export type createProgramResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type createProgramResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type createProgramResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+    
+export type createProgramResponseSuccess = (createProgramResponse201) & {
+  headers: Headers;
+};
+export type createProgramResponseError = (createProgramResponse400 | createProgramResponse401 | createProgramResponse403) & {
+  headers: Headers;
+};
+
+export type createProgramResponse = (createProgramResponseSuccess | createProgramResponseError)
+
+export const getCreateProgramUrl = (orgId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/programs`
+}
+
+export const createProgram = async (orgId: string,
+    programCreateRequest: ProgramCreateRequest, options?: RequestInit): Promise<createProgramResponse> => {
+  
+  const res = await fetch(getCreateProgramUrl(orgId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      programCreateRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: createProgramResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as createProgramResponse
+}
+
+
+
+/**
+ * Returns program with full phase details.
+ * @summary Get program details
+ */
+export type getProgramResponse200 = {
+  data: ProgramDetail
+  status: 200
+}
+
+export type getProgramResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getProgramResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type getProgramResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getProgramResponseSuccess = (getProgramResponse200) & {
+  headers: Headers;
+};
+export type getProgramResponseError = (getProgramResponse401 | getProgramResponse403 | getProgramResponse404) & {
+  headers: Headers;
+};
+
+export type getProgramResponse = (getProgramResponseSuccess | getProgramResponseError)
+
+export const getGetProgramUrl = (orgId: string,
+    programSlug: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/programs/${programSlug}`
+}
+
+export const getProgram = async (orgId: string,
+    programSlug: string, options?: RequestInit): Promise<getProgramResponse> => {
+  
+  const res = await fetch(getGetProgramUrl(orgId,programSlug),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getProgramResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getProgramResponse
+}
+
+
+
+/**
+ * Partially updates program details and/or phases.
+ * @summary Update program
+ */
+export type updateProgramResponse200 = {
+  data: ProgramDetail
+  status: 200
+}
+
+export type updateProgramResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type updateProgramResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type updateProgramResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type updateProgramResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type updateProgramResponseSuccess = (updateProgramResponse200) & {
+  headers: Headers;
+};
+export type updateProgramResponseError = (updateProgramResponse400 | updateProgramResponse401 | updateProgramResponse403 | updateProgramResponse404) & {
+  headers: Headers;
+};
+
+export type updateProgramResponse = (updateProgramResponseSuccess | updateProgramResponseError)
+
+export const getUpdateProgramUrl = (orgId: string,
+    programSlug: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/programs/${programSlug}`
+}
+
+export const updateProgram = async (orgId: string,
+    programSlug: string,
+    programUpdateRequest: ProgramUpdateRequest, options?: RequestInit): Promise<updateProgramResponse> => {
+  
+  const res = await fetch(getUpdateProgramUrl(orgId,programSlug),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      programUpdateRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: updateProgramResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as updateProgramResponse
+}
+
+
+
+/**
+ * Deletes a program if it has no active assignments.
+ * @summary Delete program
+ */
+export type deleteProgramResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteProgramResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type deleteProgramResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type deleteProgramResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+
+export type deleteProgramResponse409 = {
+  data: ErrorResponse
+  status: 409
+}
+    
+export type deleteProgramResponseSuccess = (deleteProgramResponse204) & {
+  headers: Headers;
+};
+export type deleteProgramResponseError = (deleteProgramResponse401 | deleteProgramResponse403 | deleteProgramResponse404 | deleteProgramResponse409) & {
+  headers: Headers;
+};
+
+export type deleteProgramResponse = (deleteProgramResponseSuccess | deleteProgramResponseError)
+
+export const getDeleteProgramUrl = (orgId: string,
+    programSlug: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/programs/${programSlug}`
+}
+
+export const deleteProgram = async (orgId: string,
+    programSlug: string, options?: RequestInit): Promise<deleteProgramResponse> => {
+  
+  const res = await fetch(getDeleteProgramUrl(orgId,programSlug),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: deleteProgramResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as deleteProgramResponse
+}
+
+
+
+/**
+ * Returns all programs assigned to a cohort.
+ * @summary List program assignments for a cohort
+ */
+export type listCohortProgramAssignmentsResponse200 = {
+  data: PagedCohortProgramAssignments
+  status: 200
+}
+
+export type listCohortProgramAssignmentsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type listCohortProgramAssignmentsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type listCohortProgramAssignmentsResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type listCohortProgramAssignmentsResponseSuccess = (listCohortProgramAssignmentsResponse200) & {
+  headers: Headers;
+};
+export type listCohortProgramAssignmentsResponseError = (listCohortProgramAssignmentsResponse401 | listCohortProgramAssignmentsResponse403 | listCohortProgramAssignmentsResponse404) & {
+  headers: Headers;
+};
+
+export type listCohortProgramAssignmentsResponse = (listCohortProgramAssignmentsResponseSuccess | listCohortProgramAssignmentsResponseError)
+
+export const getListCohortProgramAssignmentsUrl = (orgId: string,
+    cohortId: string,
+    params?: ListCohortProgramAssignmentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/orgs/${orgId}/cohorts/${cohortId}/program-assignments?${stringifiedParams}` : `/orgs/${orgId}/cohorts/${cohortId}/program-assignments`
+}
+
+export const listCohortProgramAssignments = async (orgId: string,
+    cohortId: string,
+    params?: ListCohortProgramAssignmentsParams, options?: RequestInit): Promise<listCohortProgramAssignmentsResponse> => {
+  
+  const res = await fetch(getListCohortProgramAssignmentsUrl(orgId,cohortId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: listCohortProgramAssignmentsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listCohortProgramAssignmentsResponse
+}
+
+
+
+/**
+ * Assigns a program to a cohort, auto-creating learner assignments.
+ * @summary Assign program to cohort
+ */
+export type assignProgramToCohortResponse201 = {
+  data: CohortProgramAssignmentDetail
+  status: 201
+}
+
+export type assignProgramToCohortResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type assignProgramToCohortResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type assignProgramToCohortResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type assignProgramToCohortResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type assignProgramToCohortResponseSuccess = (assignProgramToCohortResponse201) & {
+  headers: Headers;
+};
+export type assignProgramToCohortResponseError = (assignProgramToCohortResponse400 | assignProgramToCohortResponse401 | assignProgramToCohortResponse403 | assignProgramToCohortResponse404) & {
+  headers: Headers;
+};
+
+export type assignProgramToCohortResponse = (assignProgramToCohortResponseSuccess | assignProgramToCohortResponseError)
+
+export const getAssignProgramToCohortUrl = (orgId: string,
+    cohortId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/cohorts/${cohortId}/program-assignments`
+}
+
+export const assignProgramToCohort = async (orgId: string,
+    cohortId: string,
+    cohortProgramAssignmentCreateRequest: CohortProgramAssignmentCreateRequest, options?: RequestInit): Promise<assignProgramToCohortResponse> => {
+  
+  const res = await fetch(getAssignProgramToCohortUrl(orgId,cohortId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      cohortProgramAssignmentCreateRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: assignProgramToCohortResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as assignProgramToCohortResponse
+}
+
+
+
+/**
+ * Returns assignment with aggregate progress.
+ * @summary Get cohort program assignment details
+ */
+export type getCohortProgramAssignmentResponse200 = {
+  data: CohortProgramAssignmentDetail
+  status: 200
+}
+
+export type getCohortProgramAssignmentResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getCohortProgramAssignmentResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type getCohortProgramAssignmentResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getCohortProgramAssignmentResponseSuccess = (getCohortProgramAssignmentResponse200) & {
+  headers: Headers;
+};
+export type getCohortProgramAssignmentResponseError = (getCohortProgramAssignmentResponse401 | getCohortProgramAssignmentResponse403 | getCohortProgramAssignmentResponse404) & {
+  headers: Headers;
+};
+
+export type getCohortProgramAssignmentResponse = (getCohortProgramAssignmentResponseSuccess | getCohortProgramAssignmentResponseError)
+
+export const getGetCohortProgramAssignmentUrl = (orgId: string,
+    cohortId: string,
+    cohortAssignmentId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/cohorts/${cohortId}/program-assignments/${cohortAssignmentId}`
+}
+
+export const getCohortProgramAssignment = async (orgId: string,
+    cohortId: string,
+    cohortAssignmentId: string, options?: RequestInit): Promise<getCohortProgramAssignmentResponse> => {
+  
+  const res = await fetch(getGetCohortProgramAssignmentUrl(orgId,cohortId,cohortAssignmentId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getCohortProgramAssignmentResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getCohortProgramAssignmentResponse
+}
+
+
+
+/**
+ * Removes assignment and all derived learner assignments.
+ * @summary Remove program assignment from cohort
+ */
+export type unassignProgramFromCohortResponse204 = {
+  data: void
+  status: 204
+}
+
+export type unassignProgramFromCohortResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type unassignProgramFromCohortResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type unassignProgramFromCohortResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type unassignProgramFromCohortResponseSuccess = (unassignProgramFromCohortResponse204) & {
+  headers: Headers;
+};
+export type unassignProgramFromCohortResponseError = (unassignProgramFromCohortResponse401 | unassignProgramFromCohortResponse403 | unassignProgramFromCohortResponse404) & {
+  headers: Headers;
+};
+
+export type unassignProgramFromCohortResponse = (unassignProgramFromCohortResponseSuccess | unassignProgramFromCohortResponseError)
+
+export const getUnassignProgramFromCohortUrl = (orgId: string,
+    cohortId: string,
+    cohortAssignmentId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/cohorts/${cohortId}/program-assignments/${cohortAssignmentId}`
+}
+
+export const unassignProgramFromCohort = async (orgId: string,
+    cohortId: string,
+    cohortAssignmentId: string, options?: RequestInit): Promise<unassignProgramFromCohortResponse> => {
+  
+  const res = await fetch(getUnassignProgramFromCohortUrl(orgId,cohortId,cohortAssignmentId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: unassignProgramFromCohortResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as unassignProgramFromCohortResponse
+}
+
+
+
+/**
+ * Returns all programs assigned to a learner.
+ * @summary List program assignments for a learner
+ */
+export type listLearnerProgramAssignmentsResponse200 = {
+  data: PagedLearnerProgramAssignments
+  status: 200
+}
+
+export type listLearnerProgramAssignmentsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type listLearnerProgramAssignmentsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type listLearnerProgramAssignmentsResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type listLearnerProgramAssignmentsResponseSuccess = (listLearnerProgramAssignmentsResponse200) & {
+  headers: Headers;
+};
+export type listLearnerProgramAssignmentsResponseError = (listLearnerProgramAssignmentsResponse401 | listLearnerProgramAssignmentsResponse403 | listLearnerProgramAssignmentsResponse404) & {
+  headers: Headers;
+};
+
+export type listLearnerProgramAssignmentsResponse = (listLearnerProgramAssignmentsResponseSuccess | listLearnerProgramAssignmentsResponseError)
+
+export const getListLearnerProgramAssignmentsUrl = (orgId: string,
+    learnerId: string,
+    params?: ListLearnerProgramAssignmentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/orgs/${orgId}/learners/${learnerId}/program-assignments?${stringifiedParams}` : `/orgs/${orgId}/learners/${learnerId}/program-assignments`
+}
+
+export const listLearnerProgramAssignments = async (orgId: string,
+    learnerId: string,
+    params?: ListLearnerProgramAssignmentsParams, options?: RequestInit): Promise<listLearnerProgramAssignmentsResponse> => {
+  
+  const res = await fetch(getListLearnerProgramAssignmentsUrl(orgId,learnerId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: listLearnerProgramAssignmentsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listLearnerProgramAssignmentsResponse
+}
+
+
+
+/**
+ * Directly assigns a program to a learner.
+ * @summary Assign program to learner
+ */
+export type assignProgramToLearnerResponse201 = {
+  data: LearnerProgramAssignmentDetail
+  status: 201
+}
+
+export type assignProgramToLearnerResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type assignProgramToLearnerResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type assignProgramToLearnerResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type assignProgramToLearnerResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type assignProgramToLearnerResponseSuccess = (assignProgramToLearnerResponse201) & {
+  headers: Headers;
+};
+export type assignProgramToLearnerResponseError = (assignProgramToLearnerResponse400 | assignProgramToLearnerResponse401 | assignProgramToLearnerResponse403 | assignProgramToLearnerResponse404) & {
+  headers: Headers;
+};
+
+export type assignProgramToLearnerResponse = (assignProgramToLearnerResponseSuccess | assignProgramToLearnerResponseError)
+
+export const getAssignProgramToLearnerUrl = (orgId: string,
+    learnerId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/learners/${learnerId}/program-assignments`
+}
+
+export const assignProgramToLearner = async (orgId: string,
+    learnerId: string,
+    learnerProgramAssignmentCreateRequest: LearnerProgramAssignmentCreateRequest, options?: RequestInit): Promise<assignProgramToLearnerResponse> => {
+  
+  const res = await fetch(getAssignProgramToLearnerUrl(orgId,learnerId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      learnerProgramAssignmentCreateRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: assignProgramToLearnerResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as assignProgramToLearnerResponse
+}
+
+
+
+/**
+ * Returns assignment with full progress tracking.
+ * @summary Get learner program assignment details
+ */
+export type getLearnerProgramAssignmentResponse200 = {
+  data: LearnerProgramAssignmentDetail
+  status: 200
+}
+
+export type getLearnerProgramAssignmentResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getLearnerProgramAssignmentResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type getLearnerProgramAssignmentResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getLearnerProgramAssignmentResponseSuccess = (getLearnerProgramAssignmentResponse200) & {
+  headers: Headers;
+};
+export type getLearnerProgramAssignmentResponseError = (getLearnerProgramAssignmentResponse401 | getLearnerProgramAssignmentResponse403 | getLearnerProgramAssignmentResponse404) & {
+  headers: Headers;
+};
+
+export type getLearnerProgramAssignmentResponse = (getLearnerProgramAssignmentResponseSuccess | getLearnerProgramAssignmentResponseError)
+
+export const getGetLearnerProgramAssignmentUrl = (orgId: string,
+    learnerId: string,
+    learnerAssignmentId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/learners/${learnerId}/program-assignments/${learnerAssignmentId}`
+}
+
+export const getLearnerProgramAssignment = async (orgId: string,
+    learnerId: string,
+    learnerAssignmentId: string, options?: RequestInit): Promise<getLearnerProgramAssignmentResponse> => {
+  
+  const res = await fetch(getGetLearnerProgramAssignmentUrl(orgId,learnerId,learnerAssignmentId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getLearnerProgramAssignmentResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getLearnerProgramAssignmentResponse
+}
+
+
+
+/**
+ * Removes assignment (only if not cohort-derived).
+ * @summary Remove program assignment from learner
+ */
+export type unassignProgramFromLearnerResponse204 = {
+  data: void
+  status: 204
+}
+
+export type unassignProgramFromLearnerResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type unassignProgramFromLearnerResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type unassignProgramFromLearnerResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+
+export type unassignProgramFromLearnerResponse409 = {
+  data: ErrorResponse
+  status: 409
+}
+    
+export type unassignProgramFromLearnerResponseSuccess = (unassignProgramFromLearnerResponse204) & {
+  headers: Headers;
+};
+export type unassignProgramFromLearnerResponseError = (unassignProgramFromLearnerResponse401 | unassignProgramFromLearnerResponse403 | unassignProgramFromLearnerResponse404 | unassignProgramFromLearnerResponse409) & {
+  headers: Headers;
+};
+
+export type unassignProgramFromLearnerResponse = (unassignProgramFromLearnerResponseSuccess | unassignProgramFromLearnerResponseError)
+
+export const getUnassignProgramFromLearnerUrl = (orgId: string,
+    learnerId: string,
+    learnerAssignmentId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/learners/${learnerId}/program-assignments/${learnerAssignmentId}`
+}
+
+export const unassignProgramFromLearner = async (orgId: string,
+    learnerId: string,
+    learnerAssignmentId: string, options?: RequestInit): Promise<unassignProgramFromLearnerResponse> => {
+  
+  const res = await fetch(getUnassignProgramFromLearnerUrl(orgId,learnerId,learnerAssignmentId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: unassignProgramFromLearnerResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as unassignProgramFromLearnerResponse
+}
+
+
+
+/**
+ * Staff marks a checkpoint as complete for a learner.
+ * @summary Sign off on a checkpoint
+ */
+export type signCheckpointResponse201 = {
+  data: CheckpointCompletion
+  status: 201
+}
+
+export type signCheckpointResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type signCheckpointResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type signCheckpointResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type signCheckpointResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+
+export type signCheckpointResponse409 = {
+  data: ErrorResponse
+  status: 409
+}
+    
+export type signCheckpointResponseSuccess = (signCheckpointResponse201) & {
+  headers: Headers;
+};
+export type signCheckpointResponseError = (signCheckpointResponse400 | signCheckpointResponse401 | signCheckpointResponse403 | signCheckpointResponse404 | signCheckpointResponse409) & {
+  headers: Headers;
+};
+
+export type signCheckpointResponse = (signCheckpointResponseSuccess | signCheckpointResponseError)
+
+export const getSignCheckpointUrl = (orgId: string,
+    learnerId: string,
+    learnerAssignmentId: string,
+    checkpointId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/learners/${learnerId}/program-assignments/${learnerAssignmentId}/checkpoints/${checkpointId}/sign`
+}
+
+export const signCheckpoint = async (orgId: string,
+    learnerId: string,
+    learnerAssignmentId: string,
+    checkpointId: string,
+    checkpointSignRequest: CheckpointSignRequest, options?: RequestInit): Promise<signCheckpointResponse> => {
+  
+  const res = await fetch(getSignCheckpointUrl(orgId,learnerId,learnerAssignmentId,checkpointId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkpointSignRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: signCheckpointResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as signCheckpointResponse
+}
+
+
+
+/**
+ * Staff revokes a checkpoint completion.
+ * @summary Remove checkpoint signature
+ */
+export type unsignCheckpointResponse204 = {
+  data: void
+  status: 204
+}
+
+export type unsignCheckpointResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type unsignCheckpointResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type unsignCheckpointResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type unsignCheckpointResponseSuccess = (unsignCheckpointResponse204) & {
+  headers: Headers;
+};
+export type unsignCheckpointResponseError = (unsignCheckpointResponse401 | unsignCheckpointResponse403 | unsignCheckpointResponse404) & {
+  headers: Headers;
+};
+
+export type unsignCheckpointResponse = (unsignCheckpointResponseSuccess | unsignCheckpointResponseError)
+
+export const getUnsignCheckpointUrl = (orgId: string,
+    learnerId: string,
+    learnerAssignmentId: string,
+    checkpointId: string,
+    completionId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/learners/${learnerId}/program-assignments/${learnerAssignmentId}/checkpoints/${checkpointId}/unsign/${completionId}`
+}
+
+export const unsignCheckpoint = async (orgId: string,
+    learnerId: string,
+    learnerAssignmentId: string,
+    checkpointId: string,
+    completionId: string, options?: RequestInit): Promise<unsignCheckpointResponse> => {
+  
+  const res = await fetch(getUnsignCheckpointUrl(orgId,learnerId,learnerAssignmentId,checkpointId,completionId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: unsignCheckpointResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as unsignCheckpointResponse
+}
+
+
+
+/**
  * Super admin only. Returns a paginated list of all user accounts.
  * @summary List users (platform-wide)
  */
@@ -5180,6 +6576,28 @@ export const getUpdateCohortResponseMock = (overrideResponse: Partial< Cohort > 
 
 export const getAddCohortLearnersResponseMock = (): CohortDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), status: faker.helpers.arrayElement(['active','draft','archived'] as const), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), assignedStaffIds: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), undefined]), learnerCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{learners: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), undefined])},})
 
+export const getListProgramsResponseMock = (overrideResponse: Partial< PagedPrograms > = {}): PagedPrograms => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
+
+export const getCreateProgramResponseMock = (): ProgramDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},})
+
+export const getGetProgramResponseMock = (): ProgramDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},})
+
+export const getUpdateProgramResponseMock = (): ProgramDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},})
+
+export const getListCohortProgramAssignmentsResponseMock = (overrideResponse: Partial< PagedCohortProgramAssignments > = {}): PagedCohortProgramAssignments => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), cohortId: faker.string.alpha({length: {min: 10, max: 20}}), programId: faker.string.alpha({length: {min: 10, max: 20}}), assignedBy: faker.string.alpha({length: {min: 10, max: 20}}), assignedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', phaseDueDates: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), dueDate: faker.date.past().toISOString().slice(0, 19) + 'Z'})), undefined])},...{program: faker.helpers.arrayElement([{...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},}, undefined]), cohort: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})}, undefined]), learnerAssignmentCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])},})), ...overrideResponse})
+
+export const getAssignProgramToCohortResponseMock = (): CohortProgramAssignmentDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), cohortId: faker.string.alpha({length: {min: 10, max: 20}}), programId: faker.string.alpha({length: {min: 10, max: 20}}), assignedBy: faker.string.alpha({length: {min: 10, max: 20}}), assignedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', phaseDueDates: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), dueDate: faker.date.past().toISOString().slice(0, 19) + 'Z'})), undefined])},...{program: faker.helpers.arrayElement([{...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},}, undefined]), cohort: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})}, undefined]), learnerAssignmentCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])},})
+
+export const getGetCohortProgramAssignmentResponseMock = (): CohortProgramAssignmentDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), cohortId: faker.string.alpha({length: {min: 10, max: 20}}), programId: faker.string.alpha({length: {min: 10, max: 20}}), assignedBy: faker.string.alpha({length: {min: 10, max: 20}}), assignedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', phaseDueDates: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), dueDate: faker.date.past().toISOString().slice(0, 19) + 'Z'})), undefined])},...{program: faker.helpers.arrayElement([{...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},}, undefined]), cohort: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})}, undefined]), learnerAssignmentCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])},})
+
+export const getListLearnerProgramAssignmentsResponseMock = (overrideResponse: Partial< PagedLearnerProgramAssignments > = {}): PagedLearnerProgramAssignments => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), learnerId: faker.string.alpha({length: {min: 10, max: 20}}), programId: faker.string.alpha({length: {min: 10, max: 20}}), cohortAssignmentId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), assignedBy: faker.string.alpha({length: {min: 10, max: 20}}), assignedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', phaseDueDates: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), dueDate: faker.date.past().toISOString().slice(0, 19) + 'Z'})), undefined]), completedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{program: faker.helpers.arrayElement([{...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},}, undefined]), learner: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined])}, undefined]), progress: faker.helpers.arrayElement([{badgesEarned: faker.number.int({min: undefined, max: undefined}), badgesTotal: faker.number.int({min: undefined, max: undefined}), checkpointsSigned: faker.number.int({min: undefined, max: undefined}), checkpointsTotal: faker.number.int({min: undefined, max: undefined}), phaseProgress: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), badgesEarned: faker.number.int({min: undefined, max: undefined}), badgesTotal: faker.number.int({min: undefined, max: undefined}), checkpointsSigned: faker.number.int({min: undefined, max: undefined}), checkpointsTotal: faker.number.int({min: undefined, max: undefined}), isComplete: faker.datatype.boolean()})), undefined]), checkpointCompletions: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), assignmentId: faker.string.alpha({length: {min: 10, max: 20}}), checkpointId: faker.string.alpha({length: {min: 10, max: 20}}), signedBy: faker.string.alpha({length: {min: 10, max: 20}}), signedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 1000}}), undefined])})), undefined])}, undefined])},})), ...overrideResponse})
+
+export const getAssignProgramToLearnerResponseMock = (): LearnerProgramAssignmentDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), learnerId: faker.string.alpha({length: {min: 10, max: 20}}), programId: faker.string.alpha({length: {min: 10, max: 20}}), cohortAssignmentId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), assignedBy: faker.string.alpha({length: {min: 10, max: 20}}), assignedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', phaseDueDates: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), dueDate: faker.date.past().toISOString().slice(0, 19) + 'Z'})), undefined]), completedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{program: faker.helpers.arrayElement([{...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},}, undefined]), learner: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined])}, undefined]), progress: faker.helpers.arrayElement([{badgesEarned: faker.number.int({min: undefined, max: undefined}), badgesTotal: faker.number.int({min: undefined, max: undefined}), checkpointsSigned: faker.number.int({min: undefined, max: undefined}), checkpointsTotal: faker.number.int({min: undefined, max: undefined}), phaseProgress: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), badgesEarned: faker.number.int({min: undefined, max: undefined}), badgesTotal: faker.number.int({min: undefined, max: undefined}), checkpointsSigned: faker.number.int({min: undefined, max: undefined}), checkpointsTotal: faker.number.int({min: undefined, max: undefined}), isComplete: faker.datatype.boolean()})), undefined]), checkpointCompletions: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), assignmentId: faker.string.alpha({length: {min: 10, max: 20}}), checkpointId: faker.string.alpha({length: {min: 10, max: 20}}), signedBy: faker.string.alpha({length: {min: 10, max: 20}}), signedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 1000}}), undefined])})), undefined])}, undefined])},})
+
+export const getGetLearnerProgramAssignmentResponseMock = (): LearnerProgramAssignmentDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), learnerId: faker.string.alpha({length: {min: 10, max: 20}}), programId: faker.string.alpha({length: {min: 10, max: 20}}), cohortAssignmentId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), assignedBy: faker.string.alpha({length: {min: 10, max: 20}}), assignedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', phaseDueDates: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), dueDate: faker.date.past().toISOString().slice(0, 19) + 'Z'})), undefined]), completedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{program: faker.helpers.arrayElement([{...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), status: faker.helpers.arrayElement(['draft','active','archived'] as const), phaseCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalBadgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), totalCheckpointCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{phases: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), order: faker.number.int({min: undefined, max: undefined}), badgeIds: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), checkpoints: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])}))})), undefined])},}, undefined]), learner: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined])}, undefined]), progress: faker.helpers.arrayElement([{badgesEarned: faker.number.int({min: undefined, max: undefined}), badgesTotal: faker.number.int({min: undefined, max: undefined}), checkpointsSigned: faker.number.int({min: undefined, max: undefined}), checkpointsTotal: faker.number.int({min: undefined, max: undefined}), phaseProgress: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({phaseId: faker.string.alpha({length: {min: 10, max: 20}}), badgesEarned: faker.number.int({min: undefined, max: undefined}), badgesTotal: faker.number.int({min: undefined, max: undefined}), checkpointsSigned: faker.number.int({min: undefined, max: undefined}), checkpointsTotal: faker.number.int({min: undefined, max: undefined}), isComplete: faker.datatype.boolean()})), undefined]), checkpointCompletions: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), assignmentId: faker.string.alpha({length: {min: 10, max: 20}}), checkpointId: faker.string.alpha({length: {min: 10, max: 20}}), signedBy: faker.string.alpha({length: {min: 10, max: 20}}), signedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 1000}}), undefined])})), undefined])}, undefined])},})
+
+export const getSignCheckpointResponseMock = (overrideResponse: Partial< CheckpointCompletion > = {}): CheckpointCompletion => ({id: faker.string.alpha({length: {min: 10, max: 20}}), assignmentId: faker.string.alpha({length: {min: 10, max: 20}}), checkpointId: faker.string.alpha({length: {min: 10, max: 20}}), signedBy: faker.string.alpha({length: {min: 10, max: 20}}), signedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 1000}}), undefined]), ...overrideResponse})
+
 export const getListUsersResponseMock = (overrideResponse: Partial< PagedUsers > = {}): PagedUsers => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.internet.email(), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), profileImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), bio: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 500}}), undefined]), title: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
 
 export const getGetUserResponseMock = (overrideResponse: Partial< User > = {}): User => ({id: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.internet.email(), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), profileImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), bio: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 500}}), undefined]), title: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
@@ -5617,6 +7035,178 @@ export const getRemoveCohortLearnerMockHandler = (overrideResponse?: void | ((in
   }, options)
 }
 
+export const getListProgramsMockHandler = (overrideResponse?: PagedPrograms | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PagedPrograms> | PagedPrograms), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/programs', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListProgramsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getCreateProgramMockHandler = (overrideResponse?: ProgramDetail | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<ProgramDetail> | ProgramDetail), options?: RequestHandlerOptions) => {
+  return http.post('*/orgs/:orgId/programs', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getCreateProgramResponseMock()),
+      { status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetProgramMockHandler = (overrideResponse?: ProgramDetail | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<ProgramDetail> | ProgramDetail), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/programs/:programSlug', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetProgramResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getUpdateProgramMockHandler = (overrideResponse?: ProgramDetail | ((info: Parameters<Parameters<typeof http.patch>[1]>[0]) => Promise<ProgramDetail> | ProgramDetail), options?: RequestHandlerOptions) => {
+  return http.patch('*/orgs/:orgId/programs/:programSlug', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getUpdateProgramResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getDeleteProgramMockHandler = (overrideResponse?: void | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.delete('*/orgs/:orgId/programs/:programSlug', async (info) => {
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+    return new HttpResponse(null,
+      { status: 204,
+        
+      })
+  }, options)
+}
+
+export const getListCohortProgramAssignmentsMockHandler = (overrideResponse?: PagedCohortProgramAssignments | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PagedCohortProgramAssignments> | PagedCohortProgramAssignments), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/cohorts/:cohortId/program-assignments', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListCohortProgramAssignmentsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getAssignProgramToCohortMockHandler = (overrideResponse?: CohortProgramAssignmentDetail | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<CohortProgramAssignmentDetail> | CohortProgramAssignmentDetail), options?: RequestHandlerOptions) => {
+  return http.post('*/orgs/:orgId/cohorts/:cohortId/program-assignments', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getAssignProgramToCohortResponseMock()),
+      { status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetCohortProgramAssignmentMockHandler = (overrideResponse?: CohortProgramAssignmentDetail | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<CohortProgramAssignmentDetail> | CohortProgramAssignmentDetail), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/cohorts/:cohortId/program-assignments/:cohortAssignmentId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetCohortProgramAssignmentResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getUnassignProgramFromCohortMockHandler = (overrideResponse?: void | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.delete('*/orgs/:orgId/cohorts/:cohortId/program-assignments/:cohortAssignmentId', async (info) => {
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+    return new HttpResponse(null,
+      { status: 204,
+        
+      })
+  }, options)
+}
+
+export const getListLearnerProgramAssignmentsMockHandler = (overrideResponse?: PagedLearnerProgramAssignments | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PagedLearnerProgramAssignments> | PagedLearnerProgramAssignments), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/learners/:learnerId/program-assignments', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListLearnerProgramAssignmentsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getAssignProgramToLearnerMockHandler = (overrideResponse?: LearnerProgramAssignmentDetail | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<LearnerProgramAssignmentDetail> | LearnerProgramAssignmentDetail), options?: RequestHandlerOptions) => {
+  return http.post('*/orgs/:orgId/learners/:learnerId/program-assignments', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getAssignProgramToLearnerResponseMock()),
+      { status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetLearnerProgramAssignmentMockHandler = (overrideResponse?: LearnerProgramAssignmentDetail | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<LearnerProgramAssignmentDetail> | LearnerProgramAssignmentDetail), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/learners/:learnerId/program-assignments/:learnerAssignmentId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetLearnerProgramAssignmentResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getUnassignProgramFromLearnerMockHandler = (overrideResponse?: void | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.delete('*/orgs/:orgId/learners/:learnerId/program-assignments/:learnerAssignmentId', async (info) => {
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+    return new HttpResponse(null,
+      { status: 204,
+        
+      })
+  }, options)
+}
+
+export const getSignCheckpointMockHandler = (overrideResponse?: CheckpointCompletion | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<CheckpointCompletion> | CheckpointCompletion), options?: RequestHandlerOptions) => {
+  return http.post('*/orgs/:orgId/learners/:learnerId/program-assignments/:learnerAssignmentId/checkpoints/:checkpointId/sign', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getSignCheckpointResponseMock()),
+      { status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getUnsignCheckpointMockHandler = (overrideResponse?: void | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.delete('*/orgs/:orgId/learners/:learnerId/program-assignments/:learnerAssignmentId/checkpoints/:checkpointId/unsign/:completionId', async (info) => {
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+    return new HttpResponse(null,
+      { status: 204,
+        
+      })
+  }, options)
+}
+
 export const getListUsersMockHandler = (overrideResponse?: PagedUsers | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PagedUsers> | PagedUsers), options?: RequestHandlerOptions) => {
   return http.get('*/users', async (info) => {
   
@@ -5968,6 +7558,21 @@ export const getBadgingAppAPIV0Mock = () => [
   getDeleteCohortMockHandler(),
   getAddCohortLearnersMockHandler(),
   getRemoveCohortLearnerMockHandler(),
+  getListProgramsMockHandler(),
+  getCreateProgramMockHandler(),
+  getGetProgramMockHandler(),
+  getUpdateProgramMockHandler(),
+  getDeleteProgramMockHandler(),
+  getListCohortProgramAssignmentsMockHandler(),
+  getAssignProgramToCohortMockHandler(),
+  getGetCohortProgramAssignmentMockHandler(),
+  getUnassignProgramFromCohortMockHandler(),
+  getListLearnerProgramAssignmentsMockHandler(),
+  getAssignProgramToLearnerMockHandler(),
+  getGetLearnerProgramAssignmentMockHandler(),
+  getUnassignProgramFromLearnerMockHandler(),
+  getSignCheckpointMockHandler(),
+  getUnsignCheckpointMockHandler(),
   getListUsersMockHandler(),
   getGetUserMockHandler(),
   getGetUserSettingsMockHandler(),

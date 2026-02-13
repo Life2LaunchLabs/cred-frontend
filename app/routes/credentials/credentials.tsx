@@ -3,42 +3,72 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useNavigate } from 'react-router';
+import ProgramCarousel from '~/components/ProgramCarousel';
 import BadgeCollectionCarousel from '~/components/BadgeCollectionCarousel';
 import { useOrg } from '~/context/OrgContext';
 import { useOrgPath } from '~/hooks/useOrgPath';
-import { listCollections } from '~/api/generated';
-import type { Collection } from '~/api/generated';
+import { listPrograms, listCollections } from '~/api/generated';
+import type { Program, Collection } from '~/api/generated';
 
-export default function Badges() {
+export default function Credentials() {
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
   const orgPath = useOrgPath();
-  const [libraryCollections, setLibraryCollections] = React.useState<Collection[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+
+  const [programs, setPrograms] = React.useState<Program[]>([]);
+  const [isLoadingPrograms, setIsLoadingPrograms] = React.useState(true);
+
+  const [collections, setCollections] = React.useState<Collection[]>([]);
+  const [isLoadingCollections, setIsLoadingCollections] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!activeOrg) return;
+    let cancelled = false;
+
+    async function fetchPrograms() {
+      setIsLoadingPrograms(true);
+      const res = await listPrograms(activeOrg!.org.id, { status: 'active' });
+      if (!cancelled && res.status === 200) {
+        setPrograms(res.data.data);
+      }
+      if (!cancelled) setIsLoadingPrograms(false);
+    }
+
+    fetchPrograms();
+    return () => { cancelled = true; };
+  }, [activeOrg]);
 
   React.useEffect(() => {
     if (!activeOrg) return;
     let cancelled = false;
 
     async function fetchCollections() {
-      setIsLoading(true);
+      setIsLoadingCollections(true);
       const res = await listCollections({ orgId: activeOrg!.org.id });
       if (!cancelled && res.status === 200) {
-        setLibraryCollections(res.data.data);
+        setCollections(res.data.data);
       }
-      if (!cancelled) setIsLoading(false);
+      if (!cancelled) setIsLoadingCollections(false);
     }
 
     fetchCollections();
     return () => { cancelled = true; };
   }, [activeOrg]);
 
-  const createdCollections = activeOrg
-    ? libraryCollections.filter((c) => c.createdByOrgId === activeOrg.org.id)
-    : [];
+  const handleProgramClick = (program: Program) => {
+    navigate(orgPath(`/credentials/programs/${program.slug}`));
+  };
+
+  const handleSeeAllPrograms = () => {
+    navigate(orgPath('/credentials/programs'));
+  };
 
   const handleCollectionClick = (collection: Collection) => {
-    navigate(orgPath(`/credentials/${collection.id}`));
+    navigate(orgPath(`/credentials/collections/${collection.id}`));
+  };
+
+  const handleSeeAllCollections = () => {
+    navigate(orgPath('/credentials/collections'));
   };
 
   return (
@@ -48,17 +78,20 @@ export default function Badges() {
       </Typography>
 
       <Stack spacing={3}>
+        <ProgramCarousel
+          title="Active Programs"
+          programs={programs}
+          isLoading={isLoadingPrograms}
+          onCardClick={handleProgramClick}
+          onSeeAll={handleSeeAllPrograms}
+        />
+
         <BadgeCollectionCarousel
           title="Collections"
-          collections={libraryCollections}
-          isLoading={isLoading}
+          collections={collections}
+          isLoading={isLoadingCollections}
           onCardClick={handleCollectionClick}
-        />
-        <BadgeCollectionCarousel
-          title="Created"
-          collections={createdCollections}
-          isLoading={isLoading}
-          onCardClick={handleCollectionClick}
+          onSeeAll={handleSeeAllCollections}
         />
       </Stack>
     </Box>

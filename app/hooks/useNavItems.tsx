@@ -14,7 +14,17 @@ export function useNavItems() {
   const primaryItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardRoundedIcon />, path: orgPath(), exact: true },
     { id: 'learners', label: 'Learners', icon: <PeopleRoundedIcon />, path: orgPath('/learners') },
-    { id: 'credentials', label: 'Credentials', icon: <BadgeRoundedIcon />, path: orgPath('/credentials') },
+    {
+      id: 'credentials',
+      label: 'Credentials',
+      icon: <BadgeRoundedIcon />,
+      path: orgPath('/credentials'),
+      subItems: [
+        { id: 'credentials-overview', label: 'Overview', path: orgPath('/credentials') },
+        { id: 'credentials-programs', label: 'Programs', path: orgPath('/credentials/programs') },
+        { id: 'credentials-collections', label: 'Collections', path: orgPath('/credentials/collections') },
+      ],
+    },
     { id: 'organization', label: 'Organization', icon: <BusinessRoundedIcon />, path: orgPath('/organization') },
   ];
 

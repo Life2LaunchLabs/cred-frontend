@@ -120,7 +120,7 @@ export default function BadgesDetail() {
         </Typography>
         <Button
           startIcon={<ArrowBackRoundedIcon />}
-          onClick={() => navigate(orgPath('/credentials'))}
+          onClick={() => navigate(orgPath('/credentials/collections'))}
           sx={{ textTransform: 'none' }}
         >
           Back to Credentials
@@ -194,7 +194,7 @@ export default function BadgesDetail() {
         <Button
           size="small"
           startIcon={<ArrowBackRoundedIcon />}
-          onClick={() => navigate(orgPath('/credentials'))}
+          onClick={() => navigate(orgPath('/credentials/collections'))}
           sx={{ textTransform: 'none' }}
         >
           Back to Credentials
@@ -307,7 +307,7 @@ export default function BadgesDetail() {
               <Paper
                 key={badge.id}
                 variant="outlined"
-                onClick={() => navigate(orgPath(`/credentials/${collectionId}/${badge.id}`))}
+                onClick={() => navigate(orgPath(`/credentials/collections/${collectionId}/${badge.id}`))}
                 sx={{
                   p: 2,
                   width: { xs: '100%', sm: 260 },
