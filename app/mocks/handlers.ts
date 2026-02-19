@@ -2,6 +2,7 @@ import { http, HttpResponse, passthrough } from "msw";
 import type {
   AuthResponse,
   Badge,
+  BadgeProgress,
   Collection,
   CollectionDetail,
   CollectionStats,
@@ -12,11 +13,13 @@ import type {
   ListUserOrgs200,
   Org,
   OrgMemberDetail,
+  OrgLearnerDetail,
   OrgStats,
   User,
   Program,
   ProgramDetail,
   Phase,
+  PhaseBadge,
   Checkpoint,
   CohortProgramAssignment,
   CohortProgramAssignmentDetail,
@@ -761,24 +764,91 @@ const FAKE_ORG_STATS: Record<string, OrgStats> = {
 // ---------- Learners ----------
 
 const FAKE_LEARNERS: Learner[] = [
-  { id: "lrn_1", name: "Alex Rivera", email: "alex.rivera@example.com", createdAt: "2024-01-15T08:00:00Z" },
-  { id: "lrn_2", name: "Jordan Smith", email: "jordan.smith@example.com", createdAt: "2024-01-20T09:00:00Z" },
-  { id: "lrn_3", name: "Taylor Johnson", email: "taylor.johnson@example.com", createdAt: "2024-02-05T10:00:00Z" },
-  { id: "lrn_4", name: "Morgan Lee", email: "morgan.lee@example.com", createdAt: "2024-02-10T11:00:00Z" },
-  { id: "lrn_5", name: "Casey Brown", email: "casey.brown@example.com", createdAt: "2024-02-15T12:00:00Z" },
-  { id: "lrn_6", name: "Riley Garcia", email: "riley.garcia@example.com", createdAt: "2024-03-01T08:00:00Z" },
-  { id: "lrn_7", name: "Jamie Martinez", email: "jamie.martinez@example.com", createdAt: "2024-03-05T09:00:00Z" },
-  { id: "lrn_8", name: "Avery Davis", email: "avery.davis@example.com", createdAt: "2024-03-10T10:00:00Z" },
-  { id: "lrn_9", name: "Quinn Rodriguez", email: "quinn.rodriguez@example.com", createdAt: "2024-03-15T11:00:00Z" },
-  { id: "lrn_10", name: "Drew Wilson", email: "drew.wilson@example.com", createdAt: "2024-04-01T08:00:00Z" },
-  { id: "lrn_11", name: "Dakota Anderson", email: "dakota.anderson@example.com", createdAt: "2024-04-05T09:00:00Z" },
-  { id: "lrn_12", name: "Cameron Thomas", email: "cameron.thomas@example.com", createdAt: "2024-04-10T10:00:00Z" },
-  { id: "lrn_13", name: "Sage Jackson", email: "sage.jackson@example.com", createdAt: "2024-04-15T11:00:00Z" },
-  { id: "lrn_14", name: "River White", email: "river.white@example.com", createdAt: "2024-05-01T08:00:00Z" },
-  { id: "lrn_15", name: "Skyler Harris", email: "skyler.harris@example.com", createdAt: "2024-05-05T09:00:00Z" },
-  { id: "lrn_16", name: "Phoenix Martin", email: "phoenix.martin@example.com", createdAt: "2024-05-10T10:00:00Z" },
-  { id: "lrn_17", name: "Rowan Thompson", email: "rowan.thompson@example.com", createdAt: "2024-05-15T11:00:00Z" },
-  { id: "lrn_18", name: "Indigo Moore", email: "indigo.moore@example.com", createdAt: "2024-06-01T08:00:00Z" },
+  {
+    id: "lrn_1", slug: "alex-rivera", name: "Alex Rivera", email: "alex.rivera@example.com", createdAt: "2024-01-15T08:00:00Z",
+    profileImageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=256&h=256&fit=crop&crop=face",
+    coverImageUrl: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&h=400&fit=crop",
+    title: "Junior Software Developer", location: "Austin, TX",
+    bio: "Self-taught developer transitioning into tech after 5 years in logistics. Passionate about building tools that make work easier for people on the ground.",
+  },
+  {
+    id: "lrn_2", slug: "jordan-smith", name: "Jordan Smith", email: "jordan.smith@example.com", createdAt: "2024-01-20T09:00:00Z",
+    profileImageUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=256&h=256&fit=crop&crop=face",
+    coverImageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=400&fit=crop",
+    title: "Operations Associate", location: "Denver, CO",
+    bio: "Operations professional focused on process improvement and team efficiency. Currently pursuing safety and leadership credentials.",
+  },
+  {
+    id: "lrn_3", slug: "taylor-johnson", name: "Taylor Johnson", email: "taylor.johnson@example.com", createdAt: "2024-02-05T10:00:00Z",
+    profileImageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=256&h=256&fit=crop&crop=face",
+    coverImageUrl: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=400&fit=crop",
+    title: "Project Coordinator", location: "Chicago, IL",
+    bio: "Experienced coordinator with a background in construction and infrastructure projects. Working toward PMP certification.",
+  },
+  {
+    id: "lrn_4", slug: "morgan-lee", name: "Morgan Lee", email: "morgan.lee@example.com", createdAt: "2024-02-10T11:00:00Z",
+    profileImageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=256&h=256&fit=crop&crop=face",
+    title: "Warehouse Supervisor", location: "Houston, TX",
+    bio: "Warehouse and logistics supervisor with 8 years of experience in supply chain operations.",
+  },
+  {
+    id: "lrn_5", slug: "casey-brown", name: "Casey Brown", email: "casey.brown@example.com", createdAt: "2024-02-15T12:00:00Z",
+    title: "Safety Officer", location: "Phoenix, AZ",
+  },
+  {
+    id: "lrn_6", slug: "riley-garcia", name: "Riley Garcia", email: "riley.garcia@example.com", createdAt: "2024-03-01T08:00:00Z",
+    profileImageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=256&h=256&fit=crop&crop=face",
+    title: "HR Generalist", location: "San Antonio, TX",
+    bio: "HR professional building skills in compliance and workforce development to better support employees through credentialing programs.",
+  },
+  {
+    id: "lrn_7", slug: "jamie-martinez", name: "Jamie Martinez", email: "jamie.martinez@example.com", createdAt: "2024-03-05T09:00:00Z",
+    title: "Team Lead", location: "Dallas, TX",
+  },
+  {
+    id: "lrn_8", slug: "avery-davis", name: "Avery Davis", email: "avery.davis@example.com", createdAt: "2024-03-10T10:00:00Z",
+    title: "Field Technician", location: "Austin, TX",
+  },
+  {
+    id: "lrn_9", slug: "quinn-rodriguez", name: "Quinn Rodriguez", email: "quinn.rodriguez@example.com", createdAt: "2024-03-15T11:00:00Z",
+    title: "Quality Analyst", location: "El Paso, TX",
+  },
+  {
+    id: "lrn_10", slug: "drew-wilson", name: "Drew Wilson", email: "drew.wilson@example.com", createdAt: "2024-04-01T08:00:00Z",
+    title: "Compliance Specialist", location: "Nashville, TN",
+  },
+  {
+    id: "lrn_11", slug: "dakota-anderson", name: "Dakota Anderson", email: "dakota.anderson@example.com", createdAt: "2024-04-05T09:00:00Z",
+    title: "Equipment Operator", location: "Portland, OR",
+  },
+  {
+    id: "lrn_12", slug: "cameron-thomas", name: "Cameron Thomas", email: "cameron.thomas@example.com", createdAt: "2024-04-10T10:00:00Z",
+    title: "Maintenance Technician", location: "Seattle, WA",
+  },
+  {
+    id: "lrn_13", slug: "sage-jackson", name: "Sage Jackson", email: "sage.jackson@example.com", createdAt: "2024-04-15T11:00:00Z",
+    title: "Training Coordinator", location: "Boston, MA",
+  },
+  {
+    id: "lrn_14", slug: "river-white", name: "River White", email: "river.white@example.com", createdAt: "2024-05-01T08:00:00Z",
+    title: "Administrative Assistant", location: "Miami, FL",
+  },
+  {
+    id: "lrn_15", slug: "skyler-harris", name: "Skyler Harris", email: "skyler.harris@example.com", createdAt: "2024-05-05T09:00:00Z",
+    title: "Forklift Operator", location: "Detroit, MI",
+  },
+  {
+    id: "lrn_16", slug: "phoenix-martin", name: "Phoenix Martin", email: "phoenix.martin@example.com", createdAt: "2024-05-10T10:00:00Z",
+    title: "Logistics Coordinator", location: "Minneapolis, MN",
+  },
+  {
+    id: "lrn_17", slug: "rowan-thompson", name: "Rowan Thompson", email: "rowan.thompson@example.com", createdAt: "2024-05-15T11:00:00Z",
+    title: "Safety Inspector", location: "Cleveland, OH",
+  },
+  {
+    id: "lrn_18", slug: "indigo-moore", name: "Indigo Moore", email: "indigo.moore@example.com", createdAt: "2024-06-01T08:00:00Z",
+    title: "Environmental Health Specialist", location: "Sacramento, CA",
+  },
 ];
 
 // ---------- Cohorts ----------
@@ -999,7 +1069,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Foundation Leadership Skills",
       description: "Core competencies every leader needs.",
       order: 0,
-      badgeIds: ["bdg_1", "bdg_2", "bdg_3"],
+      badges: [
+        { id: "bdg_1", name: "OSHA 10-Hour General Industry", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=128&h=128&fit=crop" },
+        { id: "bdg_2", name: "Fire Safety Awareness", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=128&h=128&fit=crop" },
+        { id: "bdg_3", name: "Hazard Communication", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_1", label: "Complete personal leadership assessment", isRequired: true },
         { id: "chk_2", label: "Submit leadership development plan", isRequired: true },
@@ -1010,7 +1084,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Team Leadership",
       description: "Leading and developing high-performing teams.",
       order: 1,
-      badgeIds: ["bdg_4", "bdg_5", "bdg_6"],
+      badges: [
+        { id: "bdg_4", name: "PPE Compliance", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=128&h=128&fit=crop" },
+        { id: "bdg_5", name: "Emergency Response", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=128&h=128&fit=crop" },
+        { id: "bdg_6", name: "Ergonomics Fundamentals", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_3", label: "Complete team project simulation", isRequired: true },
         { id: "chk_4", label: "Conduct peer feedback session", isRequired: true },
@@ -1021,7 +1099,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Strategic Leadership",
       description: "Advanced strategic thinking and organizational leadership.",
       order: 2,
-      badgeIds: ["bdg_7", "bdg_8", "bdg_9"],
+      badges: [
+        { id: "bdg_7", name: "Git Version Control", collectionId: "col_2", imageUrl: "https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=128&h=128&fit=crop" },
+        { id: "bdg_8", name: "REST API Design", collectionId: "col_2", imageUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=128&h=128&fit=crop" },
+        { id: "bdg_9", name: "Cloud Fundamentals", collectionId: "col_2", imageUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_5", label: "Present strategic vision to panel", isRequired: true },
         { id: "chk_6", label: "Complete capstone project", isRequired: true },
@@ -1034,7 +1116,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "PM Fundamentals",
       description: "Core project management principles.",
       order: 0,
-      badgeIds: ["bdg_10", "bdg_11", "bdg_12"],
+      badges: [
+        { id: "bdg_10", name: "Docker Containers", collectionId: "col_2", imageUrl: "https://images.unsplash.com/photo-1605745341112-85968b19335b?w=128&h=128&fit=crop" },
+        { id: "bdg_11", name: "Company Culture", collectionId: "col_3", imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=128&h=128&fit=crop" },
+        { id: "bdg_12", name: "Systems Access", collectionId: "col_3", imageUrl: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_7", label: "Pass PM fundamentals exam", isRequired: true },
       ],
@@ -1044,7 +1130,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Planning & Execution",
       description: "Project planning, scheduling, and execution techniques.",
       order: 1,
-      badgeIds: ["bdg_13", "bdg_14", "bdg_15"],
+      badges: [
+        { id: "bdg_13", name: "Security Basics", collectionId: "col_3", imageUrl: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=128&h=128&fit=crop" },
+        { id: "bdg_14", name: "Benefits Orientation", collectionId: "col_3", imageUrl: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=128&h=128&fit=crop" },
+        { id: "bdg_15", name: "Communication Skills", collectionId: "col_4", imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_8", label: "Create project charter", isRequired: true },
         { id: "chk_9", label: "Develop project schedule", isRequired: true },
@@ -1055,7 +1145,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Risk & Quality Management",
       description: "Managing project risks and ensuring quality.",
       order: 2,
-      badgeIds: ["bdg_16", "bdg_17", "bdg_18"],
+      badges: [
+        { id: "bdg_16", name: "Strategic Thinking", collectionId: "col_4", imageUrl: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=128&h=128&fit=crop" },
+        { id: "bdg_17", name: "Team Management", collectionId: "col_4", imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=128&h=128&fit=crop" },
+        { id: "bdg_18", name: "Time Management", collectionId: "col_5", imageUrl: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_10", label: "Complete risk assessment", isRequired: true },
         { id: "chk_11", label: "Implement quality control plan", isRequired: true },
@@ -1066,7 +1160,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Leadership & Communication",
       description: "Stakeholder management and team communication.",
       order: 3,
-      badgeIds: ["bdg_19", "bdg_20", "bdg_21"],
+      badges: [
+        { id: "bdg_19", name: "Public Speaking", collectionId: "col_5", imageUrl: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=128&h=128&fit=crop" },
+        { id: "bdg_20", name: "Conflict Resolution", collectionId: "col_5", imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=128&h=128&fit=crop" },
+        { id: "bdg_21", name: "Computer Basics", collectionId: "col_6", imageUrl: "https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_12", label: "Facilitate stakeholder meeting", isRequired: true },
         { id: "chk_13", label: "Deliver final project presentation", isRequired: true },
@@ -1079,7 +1177,10 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Data Basics",
       description: "Introduction to data analysis.",
       order: 0,
-      badgeIds: ["bdg_22", "bdg_23"],
+      badges: [
+        { id: "bdg_22", name: "Email Communication", collectionId: "col_6", imageUrl: "https://images.unsplash.com/photo-1557200134-90327ee9fafa?w=128&h=128&fit=crop" },
+        { id: "bdg_23", name: "Online Safety", collectionId: "col_6", imageUrl: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_14", label: "Complete data literacy quiz", isRequired: true },
       ],
@@ -1089,7 +1190,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Analysis Tools",
       description: "Working with data analysis tools.",
       order: 1,
-      badgeIds: ["bdg_24", "bdg_25", "bdg_26"],
+      badges: [
+        { id: "bdg_24", name: "HIPAA Compliance", collectionId: "col_7", imageUrl: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=128&h=128&fit=crop" },
+        { id: "bdg_25", name: "SOX Reporting", collectionId: "col_7", imageUrl: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=128&h=128&fit=crop" },
+        { id: "bdg_26", name: "GDPR Fundamentals", collectionId: "col_7", imageUrl: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_15", label: "Submit data analysis project", isRequired: true },
         { id: "chk_16", label: "Present findings to team", isRequired: false },
@@ -1102,7 +1207,9 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Onboarding",
       description: "Intern orientation and setup.",
       order: 0,
-      badgeIds: ["bdg_27"],
+      badges: [
+        { id: "bdg_27", name: "Forklift Operation", collectionId: "col_8", imageUrl: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_17", label: "Complete orientation", isRequired: true },
         { id: "chk_18", label: "Meet with mentor", isRequired: true },
@@ -1113,7 +1220,10 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Project Work",
       description: "Summer internship project completion.",
       order: 1,
-      badgeIds: ["bdg_28", "bdg_29"],
+      badges: [
+        { id: "bdg_28", name: "Crane Safety", collectionId: "col_8", imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=128&h=128&fit=crop" },
+        { id: "bdg_29", name: "Equipment Inspection", collectionId: "col_8", imageUrl: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_19", label: "Mid-summer check-in", isRequired: true },
         { id: "chk_20", label: "Final presentation", isRequired: true },
@@ -1126,7 +1236,10 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Teaching Foundations",
       description: "Core teaching methodologies.",
       order: 0,
-      badgeIds: ["bdg_1", "bdg_2"],
+      badges: [
+        { id: "bdg_1", name: "OSHA 10-Hour General Industry", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=128&h=128&fit=crop" },
+        { id: "bdg_2", name: "Fire Safety Awareness", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_21", label: "Observe master teacher session", isRequired: true },
       ],
@@ -1136,7 +1249,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Classroom Management",
       description: "Managing diverse classrooms effectively.",
       order: 1,
-      badgeIds: ["bdg_3", "bdg_4", "bdg_5"],
+      badges: [
+        { id: "bdg_3", name: "Hazard Communication", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=128&h=128&fit=crop" },
+        { id: "bdg_4", name: "PPE Compliance", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=128&h=128&fit=crop" },
+        { id: "bdg_5", name: "Emergency Response", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_22", label: "Implement classroom management plan", isRequired: true },
         { id: "chk_23", label: "Peer observation feedback", isRequired: true },
@@ -1147,7 +1264,11 @@ const FAKE_PROGRAM_PHASES: Record<string, Phase[]> = {
       name: "Assessment & Growth",
       description: "Student assessment and professional development.",
       order: 2,
-      badgeIds: ["bdg_6", "bdg_7", "bdg_8"],
+      badges: [
+        { id: "bdg_6", name: "Ergonomics Fundamentals", collectionId: "col_1", imageUrl: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=128&h=128&fit=crop" },
+        { id: "bdg_7", name: "Git Version Control", collectionId: "col_2", imageUrl: "https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=128&h=128&fit=crop" },
+        { id: "bdg_8", name: "REST API Design", collectionId: "col_2", imageUrl: "https://images.unsplash.com/photo-1555066931-4365d14bamp8c?w=128&h=128&fit=crop" },
+      ],
       checkpoints: [
         { id: "chk_24", label: "Create assessment rubric", isRequired: true },
         { id: "chk_25", label: "Complete professional development plan", isRequired: true },
@@ -1223,6 +1344,19 @@ const FAKE_LEARNER_PROGRAM_ASSIGNMENTS: Record<string, LearnerProgramAssignment[
     {
       id: "asn_lrn_3",
       learnerId: "lrn_3",
+      programId: "prg_1",
+      cohortAssignmentId: "asn_coh_1",
+      assignedBy: "usr_1",
+      assignedAt: "2025-01-15T10:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_1", dueDate: "2025-03-01T23:59:59Z" },
+        { phaseId: "phs_2", dueDate: "2025-05-01T23:59:59Z" },
+        { phaseId: "phs_3", dueDate: "2025-07-01T23:59:59Z" },
+      ],
+    },
+    {
+      id: "asn_lrn_3b",
+      learnerId: "lrn_3",
       programId: "prg_2",
       assignedBy: "usr_1",
       assignedAt: "2025-02-01T14:00:00Z",
@@ -1234,45 +1368,100 @@ const FAKE_LEARNER_PROGRAM_ASSIGNMENTS: Record<string, LearnerProgramAssignment[
       ],
     },
   ],
+  lrn_4: [
+    {
+      id: "asn_lrn_4",
+      learnerId: "lrn_4",
+      programId: "prg_1",
+      cohortAssignmentId: "asn_coh_1",
+      assignedBy: "usr_1",
+      assignedAt: "2025-01-15T10:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_1", dueDate: "2025-03-01T23:59:59Z" },
+        { phaseId: "phs_2", dueDate: "2025-05-01T23:59:59Z" },
+        { phaseId: "phs_3", dueDate: "2025-07-01T23:59:59Z" },
+      ],
+    },
+  ],
+  lrn_5: [
+    {
+      id: "asn_lrn_5",
+      learnerId: "lrn_5",
+      programId: "prg_1",
+      cohortAssignmentId: "asn_coh_1",
+      assignedBy: "usr_1",
+      assignedAt: "2025-01-15T10:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_1", dueDate: "2025-03-01T23:59:59Z" },
+        { phaseId: "phs_2", dueDate: "2025-05-01T23:59:59Z" },
+        { phaseId: "phs_3", dueDate: "2025-07-01T23:59:59Z" },
+      ],
+    },
+  ],
+  lrn_6: [
+    {
+      id: "asn_lrn_6",
+      learnerId: "lrn_6",
+      programId: "prg_1",
+      cohortAssignmentId: "asn_coh_1",
+      assignedBy: "usr_1",
+      assignedAt: "2025-01-15T10:00:00Z",
+      phaseDueDates: [
+        { phaseId: "phs_1", dueDate: "2025-03-01T23:59:59Z" },
+        { phaseId: "phs_2", dueDate: "2025-05-01T23:59:59Z" },
+        { phaseId: "phs_3", dueDate: "2025-07-01T23:59:59Z" },
+      ],
+    },
+  ],
 };
 
 const FAKE_CHECKPOINT_COMPLETIONS: Record<string, CheckpointCompletion[]> = {
   asn_lrn_1: [
-    {
-      id: "chk_cmp_1",
-      assignmentId: "asn_lrn_1",
-      checkpointId: "chk_1",
-      signedBy: "usr_1",
-      signedAt: "2025-02-10T15:30:00Z",
-      notes: "Excellent self-assessment. Shows strong self-awareness.",
-    },
-    {
-      id: "chk_cmp_2",
-      assignmentId: "asn_lrn_1",
-      checkpointId: "chk_2",
-      signedBy: "usr_1",
-      signedAt: "2025-02-25T11:00:00Z",
-      notes: "Clear and actionable development plan submitted.",
-    },
+    { id: "chk_cmp_1", assignmentId: "asn_lrn_1", checkpointId: "chk_1", signedBy: "usr_1", signedAt: "2025-02-10T15:30:00Z", notes: "Excellent self-assessment. Shows strong self-awareness." },
+    { id: "chk_cmp_2", assignmentId: "asn_lrn_1", checkpointId: "chk_2", signedBy: "usr_1", signedAt: "2025-02-25T11:00:00Z", notes: "Clear and actionable development plan submitted." },
+    { id: "chk_cmp_5", assignmentId: "asn_lrn_1", checkpointId: "chk_3", signedBy: "usr_1", signedAt: "2025-03-15T10:00:00Z", notes: "Team project simulation completed with distinction." },
   ],
   asn_lrn_2: [
-    {
-      id: "chk_cmp_3",
-      assignmentId: "asn_lrn_2",
-      checkpointId: "chk_1",
-      signedBy: "usr_1",
-      signedAt: "2025-02-12T09:15:00Z",
-    },
+    { id: "chk_cmp_3", assignmentId: "asn_lrn_2", checkpointId: "chk_1", signedBy: "usr_1", signedAt: "2025-02-12T09:15:00Z" },
   ],
   asn_lrn_3: [
-    {
-      id: "chk_cmp_4",
-      assignmentId: "asn_lrn_3",
-      checkpointId: "chk_7",
-      signedBy: "usr_1",
-      signedAt: "2025-02-08T16:45:00Z",
-      notes: "Passed exam with 92%. Strong grasp of fundamentals.",
-    },
+    { id: "chk_cmp_6", assignmentId: "asn_lrn_3", checkpointId: "chk_1", signedBy: "usr_1", signedAt: "2025-02-08T11:00:00Z" },
+    { id: "chk_cmp_7", assignmentId: "asn_lrn_3", checkpointId: "chk_2", signedBy: "usr_1", signedAt: "2025-02-20T14:00:00Z" },
+  ],
+  asn_lrn_3b: [
+    { id: "chk_cmp_8", assignmentId: "asn_lrn_3b", checkpointId: "chk_7", signedBy: "usr_1", signedAt: "2025-02-08T16:45:00Z", notes: "Passed exam with 92%. Strong grasp of fundamentals." },
+  ],
+  asn_lrn_4: [
+    { id: "chk_cmp_9", assignmentId: "asn_lrn_4", checkpointId: "chk_1", signedBy: "usr_1", signedAt: "2025-02-18T10:00:00Z" },
+  ],
+  asn_lrn_5: [],
+  asn_lrn_6: [
+    { id: "chk_cmp_10", assignmentId: "asn_lrn_6", checkpointId: "chk_1", signedBy: "usr_1", signedAt: "2025-02-05T09:00:00Z" },
+    { id: "chk_cmp_11", assignmentId: "asn_lrn_6", checkpointId: "chk_2", signedBy: "usr_1", signedAt: "2025-02-14T11:00:00Z" },
+    { id: "chk_cmp_12", assignmentId: "asn_lrn_6", checkpointId: "chk_3", signedBy: "usr_1", signedAt: "2025-03-01T10:00:00Z" },
+    { id: "chk_cmp_13", assignmentId: "asn_lrn_6", checkpointId: "chk_4", signedBy: "usr_1", signedAt: "2025-03-10T14:00:00Z" },
+  ],
+};
+
+// Per-learner badge completion status (used by getOrgLearner and progress calculation)
+const FAKE_LEARNER_BADGE_PROGRESS: Record<string, BadgeProgress[]> = {
+  lrn_1: [
+    { orgId: "org_1", learnerId: "lrn_1", badgeId: "bdg_1", status: "complete", updatedAt: "2025-02-10T15:30:00Z" },
+    { orgId: "org_1", learnerId: "lrn_1", badgeId: "bdg_2", status: "complete", updatedAt: "2025-02-25T11:00:00Z" },
+    { orgId: "org_1", learnerId: "lrn_1", badgeId: "bdg_3", status: "in_progress", updatedAt: "2025-03-10T09:00:00Z" },
+  ],
+  lrn_2: [
+    { orgId: "org_1", learnerId: "lrn_2", badgeId: "bdg_1", status: "complete", updatedAt: "2025-02-12T09:15:00Z" },
+  ],
+  lrn_3: [
+    { orgId: "org_1", learnerId: "lrn_3", badgeId: "bdg_1", status: "complete", updatedAt: "2025-02-09T10:00:00Z" },
+    { orgId: "org_1", learnerId: "lrn_3", badgeId: "bdg_2", status: "complete", updatedAt: "2025-02-21T12:00:00Z" },
+  ],
+  lrn_6: [
+    { orgId: "org_1", learnerId: "lrn_6", badgeId: "bdg_1", status: "complete", updatedAt: "2025-02-06T09:00:00Z" },
+    { orgId: "org_1", learnerId: "lrn_6", badgeId: "bdg_2", status: "complete", updatedAt: "2025-02-15T10:00:00Z" },
+    { orgId: "org_1", learnerId: "lrn_6", badgeId: "bdg_3", status: "complete", updatedAt: "2025-03-02T11:00:00Z" },
+    { orgId: "org_1", learnerId: "lrn_6", badgeId: "bdg_4", status: "in_progress", updatedAt: "2025-03-12T09:00:00Z" },
   ],
 };
 
@@ -1318,7 +1507,7 @@ export const handlers = [
         refreshToken: "fake-jwt-refresh-token",
         user: {
           id: "usr_" + Math.random().toString(36).slice(2, 8),
-          email: body.email,
+          email: body.email ?? "",
           name: body.name ?? body.email?.split("@")[0],
         },
       } satisfies AuthResponse,
@@ -1544,11 +1733,35 @@ export const handlers = [
     );
   }),
 
+  http.get("*/orgs/:orgId/learners/:learnerId", ({ params }) => {
+    const { orgId, learnerId } = params as { orgId: string; learnerId: string };
+
+    // Support lookup by ID or slug
+    const learner = FAKE_LEARNERS.find((l) => l.id === learnerId || l.slug === learnerId);
+    if (!learner) {
+      return HttpResponse.json({ message: "Learner not found" }, { status: 404 });
+    }
+
+    const badgeProgress = FAKE_LEARNER_BADGE_PROGRESS[learner.id] ?? [];
+    const detail: OrgLearnerDetail = {
+      id: `ol_${learner.id}`,
+      orgId,
+      learnerId: learner.id,
+      status: "active",
+      createdAt: learner.createdAt,
+      learner,
+      badgeProgress,
+    };
+
+    return HttpResponse.json(detail, { status: 200 });
+  }),
+
   http.get("*/orgs/:orgId/learners/:learnerId/program-assignments", ({ params }) => {
     const learnerId = params.learnerId as string;
     const assignments = FAKE_LEARNER_PROGRAM_ASSIGNMENTS[learnerId] ?? [];
 
     const learner = FAKE_LEARNERS.find((l) => l.id === learnerId);
+    const badgeProgress = FAKE_LEARNER_BADGE_PROGRESS[learnerId] ?? [];
     const details: LearnerProgramAssignmentDetail[] = assignments.map((asn) => {
       const program = FAKE_PROGRAMS[asn.programId];
       const completions = FAKE_CHECKPOINT_COMPLETIONS[asn.id] ?? [];
@@ -1556,10 +1769,16 @@ export const handlers = [
       // Calculate progress
       const phases = FAKE_PROGRAM_PHASES[program.id] ?? [];
       const totalCheckpoints = phases.reduce((sum, phase) => sum + phase.checkpoints.length, 0);
-      const totalBadges = phases.reduce((sum, phase) => sum + phase.badgeIds.length, 0);
+      const totalBadges = phases.reduce((sum, phase) => sum + phase.badges.length, 0);
+
+      // Count badges earned for this specific program
+      const programBadgeIds = new Set(phases.flatMap((p) => p.badges.map((b) => b.id)));
+      const programBadgesEarned = badgeProgress.filter(
+        (bp) => programBadgeIds.has(bp.badgeId) && bp.status === "complete"
+      ).length;
 
       const progress: ProgramProgress = {
-        badgesEarned: 0, // Would be calculated from actual badge issuances
+        badgesEarned: programBadgesEarned,
         badgesTotal: totalBadges,
         checkpointsSigned: completions.length,
         checkpointsTotal: totalCheckpoints,
@@ -1567,10 +1786,14 @@ export const handlers = [
           const phaseCheckpoints = completions.filter((c) =>
             phase.checkpoints.some((chk) => chk.id === c.checkpointId)
           );
+          const phaseBadgeIds = new Set(phase.badges.map((b) => b.id));
+          const phaseBadgesEarned = badgeProgress.filter(
+            (bp) => phaseBadgeIds.has(bp.badgeId) && bp.status === "complete"
+          ).length;
           return {
             phaseId: phase.id,
-            badgesEarned: 0,
-            badgesTotal: phase.badgeIds.length,
+            badgesEarned: phaseBadgesEarned,
+            badgesTotal: phase.badges.length,
             checkpointsSigned: phaseCheckpoints.length,
             checkpointsTotal: phase.checkpoints.length,
             isComplete: false,

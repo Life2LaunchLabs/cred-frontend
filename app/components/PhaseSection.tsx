@@ -12,7 +12,7 @@ import { CheckpointItem } from './CheckpointItem';
 
 interface PhaseSectionProps {
   phase: Phase;
-  onBadgeClick?: (badgeId: string) => void;
+  onBadgeClick?: (badgeId: string, collectionId: string) => void;
   onCheckpointClick?: (checkpointId: string) => void;
 }
 
@@ -34,15 +34,15 @@ export function PhaseSection({ phase, onBadgeClick, onCheckpointClick }: PhaseSe
       </Box>
 
       {/* Badges */}
-      {phase.badgeIds && phase.badgeIds.length > 0 && (
+      {phase.badges && phase.badges.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-            Badges ({phase.badgeIds.length})
+            Badges ({phase.badges.length})
           </Typography>
           <List dense disablePadding>
-            {phase.badgeIds.map((badgeId, index) => (
+            {phase.badges.map((badge) => (
               <ListItem
-                key={badgeId}
+                key={badge.id}
                 disableGutters
                 sx={{
                   cursor: onBadgeClick ? 'pointer' : 'default',
@@ -50,14 +50,11 @@ export function PhaseSection({ phase, onBadgeClick, onCheckpointClick }: PhaseSe
                   borderRadius: 1,
                   px: 1,
                 }}
-                onClick={() => onBadgeClick?.(badgeId)}
+                onClick={() => onBadgeClick?.(badge.id, badge.collectionId)}
               >
                 <ListItemText
-                  primary={badgeId}
-                  primaryTypographyProps={{
-                    variant: 'body2',
-                    sx: { fontFamily: 'monospace' },
-                  }}
+                  primary={badge.name}
+                  primaryTypographyProps={{ variant: 'body2' }}
                 />
               </ListItem>
             ))}

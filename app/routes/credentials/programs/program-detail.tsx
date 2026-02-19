@@ -158,7 +158,7 @@ export default function ProgramDetailPage() {
             <PhaseSection
               key={phase.id}
               phase={phase}
-              onBadgeClick={(badgeId) => console.log('Badge clicked:', badgeId)}
+              onBadgeClick={(badgeId, collectionId) => navigate(orgPath(`/credentials/collections/${collectionId}/${badgeId}`))}
               onCheckpointClick={(checkpointId) => console.log('Checkpoint clicked:', checkpointId)}
             />
           ))

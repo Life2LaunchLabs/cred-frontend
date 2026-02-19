@@ -8,36 +8,76 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import { useParams } from 'react-router';
+import MuiLink from '@mui/material/Link';
+import { useParams, useNavigate } from 'react-router';
 import { useOrg } from '~/context/OrgContext';
-import { getCohort } from '~/api/generated';
-import type { CohortDetail } from '~/api/generated';
+import { useOrgPath } from '~/hooks/useOrgPath';
+import { getCohort, listCohortProgramAssignments, listLearnerProgramAssignments } from '~/api/generated';
+import type { CohortDetail, Program, ProgramProgress, ProgramDetail } from '~/api/generated';
+import ProgramCarousel from '~/components/ProgramCarousel';
 
 export default function CohortDetailPage() {
   const { cohortSlug } = useParams();
   const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const orgPath = useOrgPath();
   const [cohortDetail, setCohortDetail] = React.useState<CohortDetail | null>(null);
+  const [programs, setPrograms] = React.useState<Program[]>([]);
+  const [learnerProgress, setLearnerProgress] = React.useState<Map<string, Map<string, ProgramProgress>>>(new Map());
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
     if (!activeOrg || !cohortSlug) return;
     let cancelled = false;
 
-    async function fetchCohort() {
+    async function fetchAll() {
       try {
         setIsLoading(true);
-        const res = await getCohort(activeOrg!.org.id, cohortSlug);
-        if (!cancelled && res.status === 200) {
-          setCohortDetail(res.data);
+
+        // Fetch cohort
+        const cohortRes = await getCohort(activeOrg!.org.id, cohortSlug);
+        if (cancelled || cohortRes.status !== 200) return;
+        const cohort = cohortRes.data;
+        if (!cancelled) setCohortDetail(cohort);
+
+        // Fetch cohort program assignments (use real cohort ID, not slug)
+        const programsRes = await listCohortProgramAssignments(activeOrg!.org.id, cohort.id);
+        if (cancelled || programsRes.status !== 200) return;
+        const assignedPrograms: Program[] = (programsRes.data as { data: { program?: ProgramDetail }[] }).data
+          .map((a) => a.program)
+          .filter((p): p is ProgramDetail => p !== undefined);
+        if (!cancelled) setPrograms(assignedPrograms);
+
+        // Fetch per-learner progress in parallel
+        const learners = cohort.learners ?? [];
+        if (learners.length > 0 && assignedPrograms.length > 0) {
+          const progressResults = await Promise.all(
+            learners.map((l) => listLearnerProgramAssignments(activeOrg!.org.id, l.id))
+          );
+          if (!cancelled) {
+            const map = new Map<string, Map<string, ProgramProgress>>();
+            learners.forEach((l, i) => {
+              const lmap = new Map<string, ProgramProgress>();
+              const result = progressResults[i];
+              if (result.status === 200) {
+                const assignments = (result.data as { data: { programId: string; progress?: ProgramProgress }[] }).data;
+                assignments.forEach((a) => {
+                  if (a.progress) lmap.set(a.programId, a.progress);
+                });
+              }
+              map.set(l.id, lmap);
+            });
+            setLearnerProgress(map);
+          }
         }
       } catch (error) {
-        console.error('Error fetching cohort:', error);
+        console.error('Error fetching cohort data:', error);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     }
 
-    fetchCohort();
+    fetchAll();
     return () => { cancelled = true; };
   }, [activeOrg, cohortSlug]);
 
@@ -92,6 +132,17 @@ export default function CohortDetailPage() {
         </Typography>
       </Box>
 
+      {/* Program Carousel */}
+      {programs.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <ProgramCarousel
+            title="Programs"
+            programs={programs}
+            onCardClick={(p) => navigate(orgPath('/credentials/programs/' + p.slug))}
+          />
+        </Box>
+      )}
+
       {/* Learners Table */}
       <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
         Learners
@@ -108,13 +159,41 @@ export default function CohortDetailPage() {
               <TableRow>
                 <TableCell>Name</TableCell>
                 <TableCell>Email</TableCell>
+                {programs.map((p) => (
+                  <TableCell key={p.id}>{p.name}</TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {cohortDetail.learners.map((learner) => (
                 <TableRow key={learner.id}>
-                  <TableCell>{learner.name}</TableCell>
+                  <TableCell>
+                    <MuiLink
+                      component="button"
+                      variant="body2"
+                      onClick={() => navigate(orgPath('/learners/' + (learner.slug ?? learner.id)))}
+                      sx={{ textDecoration: 'none', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                    >
+                      {learner.name}
+                    </MuiLink>
+                  </TableCell>
                   <TableCell>{learner.email ?? '—'}</TableCell>
+                  {programs.map((p) => {
+                    const progress = learnerProgress.get(learner.id)?.get(p.id);
+                    return (
+                      <TableCell key={p.id}>
+                        {progress ? (
+                          <Typography variant="caption" color="text.secondary" component="span">
+                            {progress.checkpointsSigned}/{progress.checkpointsTotal} ckpts
+                            {' · '}
+                            {progress.badgesEarned}/{progress.badgesTotal} badges
+                          </Typography>
+                        ) : (
+                          <Typography variant="caption" color="text.disabled" component="span">—</Typography>
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableBody>

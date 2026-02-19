@@ -20,6 +20,7 @@ export default [
     route(":orgSlug/learners/cohorts", "routes/learners/cohorts.tsx"),
     route(":orgSlug/learners/cohorts/:cohortSlug", "routes/learners/cohort-detail.tsx"),
     route(":orgSlug/learners/add", "routes/learners/add.tsx"),
+    route(":orgSlug/learners/:learnerId", "routes/learners/learner-detail.tsx"),
     route(":orgSlug/organization", "routes/organization/organization.tsx"),
     route(":orgSlug/organization/staff", "routes/organization/staff.tsx"),
     route(":orgSlug/organization/settings", "routes/organization/settings.tsx"),
