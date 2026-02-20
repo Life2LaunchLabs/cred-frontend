@@ -3,13 +3,12 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useNavigate } from 'react-router';
-import UsersGrid from '~/components/placeholder/UsersGrid';
 import CohortCarousel from '~/components/CohortCarousel';
 import { useOrg } from '~/context/OrgContext';
 import { useAuth } from '~/context/AuthContext';
 import { useOrgPath } from '~/hooks/useOrgPath';
 import { listCohorts } from '~/api/generated';
-import type { Cohort } from '~/api/generated';
+import type { Cohort, ListCohortsStatus } from '~/api/generated';
 
 export default function Users() {
   console.log('[Learners] Component rendering');
@@ -33,7 +32,7 @@ export default function Users() {
 
     async function fetchCohorts() {
       setIsLoadingCohorts(true);
-      const params: { status?: string; staffId?: string } = {
+      const params: { status?: ListCohortsStatus; staffId?: string } = {
         status: 'active',
       };
 
@@ -77,7 +76,6 @@ export default function Users() {
             onSeeAll={handleSeeAllCohorts}
           />
         )}
-        <UsersGrid />
       </Stack>
     </Box>
   );

@@ -10,8 +10,9 @@ import SidebarContext, { type SidebarContextValue } from '../context/SidebarCont
 import SidebarPageItem from './SidebarPageItem';
 
 export type NavSubItem = {
+  id?: string;
   label: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   path: string;
 };
 

@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import CardMedia from '@mui/material/CardMedia';
+import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -93,6 +94,7 @@ interface BadgeCollectionCarouselProps {
   collections: Collection[];
   isLoading?: boolean;
   onCardClick?: (collection: Collection) => void;
+  onSeeAll?: () => void;
 }
 
 export default function BadgeCollectionCarousel({
@@ -100,6 +102,7 @@ export default function BadgeCollectionCarousel({
   collections,
   isLoading = false,
   onCardClick,
+  onSeeAll,
 }: BadgeCollectionCarouselProps) {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -121,9 +124,16 @@ export default function BadgeCollectionCarousel({
         position: 'relative',
       }}
     >
-      <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-        {title}
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+          {title}
+        </Typography>
+        {onSeeAll && (
+          <Button variant="text" size="small" onClick={onSeeAll} sx={{ minWidth: 'auto' }}>
+            See all
+          </Button>
+        )}
+      </Box>
 
       <Box sx={{ position: 'relative' }}>
         {/* Left scroll button */}

@@ -67,7 +67,7 @@ export default function LearnerDetailPage() {
         setIsLoading(true);
 
         // Fetch learner (supports lookup by ID or slug)
-        const detailRes = await getOrgLearner(activeOrg!.org.id, learnerId);
+        const detailRes = await getOrgLearner(activeOrg!.org.id, learnerId!);
         if (cancelled || detailRes.status !== 200) return;
         const detail = detailRes.data as OrgLearnerDetail;
         if (!cancelled) setLearnerDetail(detail);

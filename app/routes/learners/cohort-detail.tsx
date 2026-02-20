@@ -35,7 +35,7 @@ export default function CohortDetailPage() {
         setIsLoading(true);
 
         // Fetch cohort
-        const cohortRes = await getCohort(activeOrg!.org.id, cohortSlug);
+        const cohortRes = await getCohort(activeOrg!.org.id, cohortSlug!);
         if (cancelled || cohortRes.status !== 200) return;
         const cohort = cohortRes.data;
         if (!cancelled) setCohortDetail(cohort);

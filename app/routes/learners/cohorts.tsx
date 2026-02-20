@@ -47,7 +47,7 @@ export default function Cohorts() {
       return (
         <Grid container spacing={2}>
           {Array.from({ length: 4 }).map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
               <Box
                 sx={{
                   width: '100%',
@@ -73,7 +73,7 @@ export default function Cohorts() {
     return (
       <Grid container spacing={2}>
         {cohorts.map((cohort) => (
-          <Grid item xs={12} sm={6} md={4} key={cohort.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={cohort.id}>
             <CohortCard cohort={cohort} onClick={handleCohortClick} />
           </Grid>
         ))}

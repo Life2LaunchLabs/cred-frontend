@@ -29,7 +29,7 @@ export default function ProgramDetailPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const res = await getProgram(activeOrg!.org.id, programSlug);
+        const res = await getProgram(activeOrg!.org.id, programSlug!);
         if (!cancelled) {
           if (res.status === 200) {
             setProgramDetail(res.data);
