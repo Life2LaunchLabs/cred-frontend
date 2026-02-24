@@ -1419,6 +1419,230 @@ export interface PagedLearnerProgramAssignments {
 }
 
 /**
+ * Lightweight badge summary for embedded display in library responses.
+ */
+export interface BadgeSummaryItem {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  issuanceCount?: number;
+}
+
+/**
+ * Org-scoped status of the relationship.
+ */
+export type OrgCollectionRelStatus = typeof OrgCollectionRelStatus[keyof typeof OrgCollectionRelStatus];
+
+
+export const OrgCollectionRelStatus = {
+  pending: 'pending',
+  active: 'active',
+  archived: 'archived',
+  rejected: 'rejected',
+} as const;
+
+/**
+ * Whether the org owns this collection or was authorized to use it.
+ */
+export type OrgCollectionRelSource = typeof OrgCollectionRelSource[keyof typeof OrgCollectionRelSource];
+
+
+export const OrgCollectionRelSource = {
+  owned: 'owned',
+  authorized: 'authorized',
+} as const;
+
+/**
+ * Org-scoped relationship to a credential collection. Covers both self-owned collections (source: owned) and externally-authorized ones (source: authorized).
+
+ */
+export interface OrgCollectionRel {
+  /** Unique relationship identifier. */
+  id: string;
+  /** The org this relationship belongs to. */
+  orgId: string;
+  /** The underlying collection. */
+  collectionId: string;
+  /** Org-scoped status of the relationship. */
+  status: OrgCollectionRelStatus;
+  /** Whether the org owns this collection or was authorized to use it. */
+  source: OrgCollectionRelSource;
+  /** Number of active programs referencing badges from this collection. */
+  programCount?: number;
+  /** ID of the originating IssueAuthorizationRequest (if source is authorized). */
+  authRequestId?: string;
+  /** Admin-internal notes about this relationship. */
+  notes?: string;
+  requestedAt?: ISODateTime;
+  approvedAt?: ISODateTime;
+  statusChangedAt?: ISODateTime;
+  collection: Collection;
+}
+
+/**
+ * Org-scoped status. Inherits from parent collection rel.
+ */
+export type OrgBadgeRelStatus = typeof OrgBadgeRelStatus[keyof typeof OrgBadgeRelStatus];
+
+
+export const OrgBadgeRelStatus = {
+  pending: 'pending',
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+/**
+ * Org-scoped relationship to a specific badge within a collection relationship.
+ */
+export interface OrgBadgeRel {
+  /** Unique badge relationship identifier. */
+  id: string;
+  orgId: string;
+  badgeId: string;
+  /** The parent collection relationship. */
+  collectionRelId: string;
+  /** Org-scoped status. Inherits from parent collection rel. */
+  status: OrgBadgeRelStatus;
+  /** Number of programs referencing this badge. */
+  programCount?: number;
+  badge: BadgeSummaryItem;
+}
+
+export type OrgCollectionRelDetail = OrgCollectionRel & {
+  /** Badge relationships derived from this collection. */
+  badgeRels?: OrgBadgeRel[];
+};
+
+/**
+ * New status (admin can archive or re-activate).
+ */
+export type OrgCollectionRelUpdateRequestStatus = typeof OrgCollectionRelUpdateRequestStatus[keyof typeof OrgCollectionRelUpdateRequestStatus];
+
+
+export const OrgCollectionRelUpdateRequestStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+/**
+ * Partial update for an org collection relationship.
+ */
+export interface OrgCollectionRelUpdateRequest {
+  /** New status (admin can archive or re-activate). */
+  status?: OrgCollectionRelUpdateRequestStatus;
+  /**
+   * Admin-internal notes.
+   * @maxLength 2000
+   */
+  notes?: string;
+}
+
+export interface PagedOrgCollectionRels {
+  meta: PagedMeta;
+  data: OrgCollectionRel[];
+}
+
+export type OrgBadgeRelDetailStatus = typeof OrgBadgeRelDetailStatus[keyof typeof OrgBadgeRelDetailStatus];
+
+
+export const OrgBadgeRelDetailStatus = {
+  pending: 'pending',
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+/**
+ * Extended badge relationship with full badge (incl. criteria) and parent collection rel.
+ */
+export interface OrgBadgeRelDetail {
+  id: string;
+  orgId: string;
+  badgeId: string;
+  collectionRelId: string;
+  status: OrgBadgeRelDetailStatus;
+  programCount?: number;
+  badge: Badge;
+  collectionRel: OrgCollectionRel;
+}
+
+export interface PagedOrgBadgeRels {
+  meta: PagedMeta;
+  data: OrgBadgeRel[];
+}
+
+/**
+ * Step-by-step counts through the credential authorization and activation flow.
+ */
+export type CredLibraryAnalyticsAdoptionFunnel = {
+  viewedInCatalog: number;
+  requested: number;
+  approved: number;
+  activeInLibrary: number;
+  referencedInPrograms: number;
+};
+
+export type CredLibraryAnalyticsTopCollectionsItem = {
+  collectionRelId: string;
+  collectionName: string;
+  programCount: number;
+};
+
+/**
+ * Org-level credential library adoption and usage analytics.
+ */
+export interface CredLibraryAnalytics {
+  /** Step-by-step counts through the credential authorization and activation flow. */
+  adoptionFunnel: CredLibraryAnalyticsAdoptionFunnel;
+  /** Active library items not referenced by any program ("shelfware"). */
+  unusedActiveCount: number;
+  /** Average days from request to approval across all authorized collections. */
+  avgTimeToApprovalDays?: number;
+  /** Most-used collections in active programs. */
+  topCollections?: CredLibraryAnalyticsTopCollectionsItem[];
+}
+
+export type CredCollectionAnalyticsProgramsItem = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export type CredCollectionAnalyticsBadgeAdoptionItem = {
+  badgeRelId: string;
+  badgeName: string;
+  programCount: number;
+};
+
+/**
+ * Analytics for a specific org collection relationship.
+ */
+export interface CredCollectionAnalytics {
+  collectionRelId: string;
+  collection: Collection;
+  programCount: number;
+  programs?: CredCollectionAnalyticsProgramsItem[];
+  /** Per-badge program coverage. */
+  badgeAdoption?: CredCollectionAnalyticsBadgeAdoptionItem[];
+}
+
+export type CredBadgeAnalyticsProgramsItem = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+/**
+ * Analytics for a specific org badge relationship.
+ */
+export interface CredBadgeAnalytics {
+  badgeRelId: string;
+  badge: Badge;
+  programCount: number;
+  programs?: CredBadgeAnalyticsProgramsItem[];
+}
+
+/**
  * Validation error
  */
 export type BadRequestResponse = ErrorResponse;
@@ -1778,6 +2002,73 @@ page?: PageParameter;
  */
 pageSize?: PageSizeParameter;
 };
+
+export type ListOrgCollectionRelsParams = {
+/**
+ * Filter by relationship status.
+ */
+status?: ListOrgCollectionRelsStatus;
+/**
+ * Keyword search.
+ */
+q?: QueryParameter;
+/**
+ * Page number (1-indexed).
+ * @minimum 1
+ */
+page?: PageParameter;
+/**
+ * Number of items per page.
+ * @minimum 1
+ * @maximum 200
+ */
+pageSize?: PageSizeParameter;
+};
+
+export type ListOrgCollectionRelsStatus = typeof ListOrgCollectionRelsStatus[keyof typeof ListOrgCollectionRelsStatus];
+
+
+export const ListOrgCollectionRelsStatus = {
+  pending: 'pending',
+  active: 'active',
+  archived: 'archived',
+  rejected: 'rejected',
+} as const;
+
+export type ListOrgBadgeRelsParams = {
+/**
+ * Filter by relationship status.
+ */
+status?: ListOrgBadgeRelsStatus;
+/**
+ * Filter to badges from a specific collection relationship.
+ */
+collectionRelId?: string;
+/**
+ * Keyword search.
+ */
+q?: QueryParameter;
+/**
+ * Page number (1-indexed).
+ * @minimum 1
+ */
+page?: PageParameter;
+/**
+ * Number of items per page.
+ * @minimum 1
+ * @maximum 200
+ */
+pageSize?: PageSizeParameter;
+};
+
+export type ListOrgBadgeRelsStatus = typeof ListOrgBadgeRelsStatus[keyof typeof ListOrgBadgeRelsStatus];
+
+
+export const ListOrgBadgeRelsStatus = {
+  pending: 'pending',
+  active: 'active',
+  archived: 'archived',
+} as const;
 
 /**
  * Creates a new user account and returns JWT tokens. Email must be unique.
@@ -6555,6 +6846,506 @@ export const getPublicAssertion = async (assertionId: string, options?: RequestI
 }
 
 
+
+/**
+ * Returns the org's credential library — collections the org owns or is authorized to use, with their status.
+ * @summary List org's collection relationships (library)
+ */
+export type listOrgCollectionRelsResponse200 = {
+  data: PagedOrgCollectionRels
+  status: 200
+}
+
+export type listOrgCollectionRelsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type listOrgCollectionRelsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+    
+export type listOrgCollectionRelsResponseSuccess = (listOrgCollectionRelsResponse200) & {
+  headers: Headers;
+};
+export type listOrgCollectionRelsResponseError = (listOrgCollectionRelsResponse401 | listOrgCollectionRelsResponse403) & {
+  headers: Headers;
+};
+
+export type listOrgCollectionRelsResponse = (listOrgCollectionRelsResponseSuccess | listOrgCollectionRelsResponseError)
+
+export const getListOrgCollectionRelsUrl = (orgId: string,
+    params?: ListOrgCollectionRelsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/orgs/${orgId}/library/collections?${stringifiedParams}` : `/orgs/${orgId}/library/collections`
+}
+
+export const listOrgCollectionRels = async (orgId: string,
+    params?: ListOrgCollectionRelsParams, options?: RequestInit): Promise<listOrgCollectionRelsResponse> => {
+  
+  const res = await fetch(getListOrgCollectionRelsUrl(orgId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: listOrgCollectionRelsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listOrgCollectionRelsResponse
+}
+
+
+
+/**
+ * Returns the org's collection relationship including embedded badge rels.
+ * @summary Get collection relationship detail
+ */
+export type getOrgCollectionRelResponse200 = {
+  data: OrgCollectionRelDetail
+  status: 200
+}
+
+export type getOrgCollectionRelResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getOrgCollectionRelResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type getOrgCollectionRelResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getOrgCollectionRelResponseSuccess = (getOrgCollectionRelResponse200) & {
+  headers: Headers;
+};
+export type getOrgCollectionRelResponseError = (getOrgCollectionRelResponse401 | getOrgCollectionRelResponse403 | getOrgCollectionRelResponse404) & {
+  headers: Headers;
+};
+
+export type getOrgCollectionRelResponse = (getOrgCollectionRelResponseSuccess | getOrgCollectionRelResponseError)
+
+export const getGetOrgCollectionRelUrl = (orgId: string,
+    collectionRelId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/library/collections/${collectionRelId}`
+}
+
+export const getOrgCollectionRel = async (orgId: string,
+    collectionRelId: string, options?: RequestInit): Promise<getOrgCollectionRelResponse> => {
+  
+  const res = await fetch(getGetOrgCollectionRelUrl(orgId,collectionRelId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getOrgCollectionRelResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getOrgCollectionRelResponse
+}
+
+
+
+/**
+ * Admin updates org-scoped status or internal notes for a collection relationship.
+ * @summary Update collection relationship (archive/unarchive, notes)
+ */
+export type updateOrgCollectionRelResponse200 = {
+  data: OrgCollectionRel
+  status: 200
+}
+
+export type updateOrgCollectionRelResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type updateOrgCollectionRelResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type updateOrgCollectionRelResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type updateOrgCollectionRelResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type updateOrgCollectionRelResponseSuccess = (updateOrgCollectionRelResponse200) & {
+  headers: Headers;
+};
+export type updateOrgCollectionRelResponseError = (updateOrgCollectionRelResponse400 | updateOrgCollectionRelResponse401 | updateOrgCollectionRelResponse403 | updateOrgCollectionRelResponse404) & {
+  headers: Headers;
+};
+
+export type updateOrgCollectionRelResponse = (updateOrgCollectionRelResponseSuccess | updateOrgCollectionRelResponseError)
+
+export const getUpdateOrgCollectionRelUrl = (orgId: string,
+    collectionRelId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/library/collections/${collectionRelId}`
+}
+
+export const updateOrgCollectionRel = async (orgId: string,
+    collectionRelId: string,
+    orgCollectionRelUpdateRequest: OrgCollectionRelUpdateRequest, options?: RequestInit): Promise<updateOrgCollectionRelResponse> => {
+  
+  const res = await fetch(getUpdateOrgCollectionRelUrl(orgId,collectionRelId),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      orgCollectionRelUpdateRequest,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: updateOrgCollectionRelResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as updateOrgCollectionRelResponse
+}
+
+
+
+/**
+ * Returns the org's badge relationships, optionally filtered by status or parent collection rel.
+ * @summary List org's badge relationships (library)
+ */
+export type listOrgBadgeRelsResponse200 = {
+  data: PagedOrgBadgeRels
+  status: 200
+}
+
+export type listOrgBadgeRelsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type listOrgBadgeRelsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+    
+export type listOrgBadgeRelsResponseSuccess = (listOrgBadgeRelsResponse200) & {
+  headers: Headers;
+};
+export type listOrgBadgeRelsResponseError = (listOrgBadgeRelsResponse401 | listOrgBadgeRelsResponse403) & {
+  headers: Headers;
+};
+
+export type listOrgBadgeRelsResponse = (listOrgBadgeRelsResponseSuccess | listOrgBadgeRelsResponseError)
+
+export const getListOrgBadgeRelsUrl = (orgId: string,
+    params?: ListOrgBadgeRelsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/orgs/${orgId}/library/badges?${stringifiedParams}` : `/orgs/${orgId}/library/badges`
+}
+
+export const listOrgBadgeRels = async (orgId: string,
+    params?: ListOrgBadgeRelsParams, options?: RequestInit): Promise<listOrgBadgeRelsResponse> => {
+  
+  const res = await fetch(getListOrgBadgeRelsUrl(orgId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: listOrgBadgeRelsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listOrgBadgeRelsResponse
+}
+
+
+
+/**
+ * Returns the org's badge relationship including full badge criteria and parent collection rel.
+ * @summary Get badge relationship detail
+ */
+export type getOrgBadgeRelResponse200 = {
+  data: OrgBadgeRelDetail
+  status: 200
+}
+
+export type getOrgBadgeRelResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getOrgBadgeRelResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type getOrgBadgeRelResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getOrgBadgeRelResponseSuccess = (getOrgBadgeRelResponse200) & {
+  headers: Headers;
+};
+export type getOrgBadgeRelResponseError = (getOrgBadgeRelResponse401 | getOrgBadgeRelResponse403 | getOrgBadgeRelResponse404) & {
+  headers: Headers;
+};
+
+export type getOrgBadgeRelResponse = (getOrgBadgeRelResponseSuccess | getOrgBadgeRelResponseError)
+
+export const getGetOrgBadgeRelUrl = (orgId: string,
+    badgeRelId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/library/badges/${badgeRelId}`
+}
+
+export const getOrgBadgeRel = async (orgId: string,
+    badgeRelId: string, options?: RequestInit): Promise<getOrgBadgeRelResponse> => {
+  
+  const res = await fetch(getGetOrgBadgeRelUrl(orgId,badgeRelId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getOrgBadgeRelResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getOrgBadgeRelResponse
+}
+
+
+
+/**
+ * Returns adoption funnel, coverage, and operational metrics for the org's credential library.
+ * @summary Get org credential library analytics
+ */
+export type getOrgLibraryAnalyticsResponse200 = {
+  data: CredLibraryAnalytics
+  status: 200
+}
+
+export type getOrgLibraryAnalyticsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getOrgLibraryAnalyticsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+    
+export type getOrgLibraryAnalyticsResponseSuccess = (getOrgLibraryAnalyticsResponse200) & {
+  headers: Headers;
+};
+export type getOrgLibraryAnalyticsResponseError = (getOrgLibraryAnalyticsResponse401 | getOrgLibraryAnalyticsResponse403) & {
+  headers: Headers;
+};
+
+export type getOrgLibraryAnalyticsResponse = (getOrgLibraryAnalyticsResponseSuccess | getOrgLibraryAnalyticsResponseError)
+
+export const getGetOrgLibraryAnalyticsUrl = (orgId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/library/analytics`
+}
+
+export const getOrgLibraryAnalytics = async (orgId: string, options?: RequestInit): Promise<getOrgLibraryAnalyticsResponse> => {
+  
+  const res = await fetch(getGetOrgLibraryAnalyticsUrl(orgId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getOrgLibraryAnalyticsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getOrgLibraryAnalyticsResponse
+}
+
+
+
+/**
+ * Returns program coverage and adoption metrics for a specific collection in the library.
+ * @summary Get collection relationship analytics
+ */
+export type getOrgCollectionRelAnalyticsResponse200 = {
+  data: CredCollectionAnalytics
+  status: 200
+}
+
+export type getOrgCollectionRelAnalyticsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getOrgCollectionRelAnalyticsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type getOrgCollectionRelAnalyticsResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getOrgCollectionRelAnalyticsResponseSuccess = (getOrgCollectionRelAnalyticsResponse200) & {
+  headers: Headers;
+};
+export type getOrgCollectionRelAnalyticsResponseError = (getOrgCollectionRelAnalyticsResponse401 | getOrgCollectionRelAnalyticsResponse403 | getOrgCollectionRelAnalyticsResponse404) & {
+  headers: Headers;
+};
+
+export type getOrgCollectionRelAnalyticsResponse = (getOrgCollectionRelAnalyticsResponseSuccess | getOrgCollectionRelAnalyticsResponseError)
+
+export const getGetOrgCollectionRelAnalyticsUrl = (orgId: string,
+    collectionRelId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/library/analytics/collections/${collectionRelId}`
+}
+
+export const getOrgCollectionRelAnalytics = async (orgId: string,
+    collectionRelId: string, options?: RequestInit): Promise<getOrgCollectionRelAnalyticsResponse> => {
+  
+  const res = await fetch(getGetOrgCollectionRelAnalyticsUrl(orgId,collectionRelId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getOrgCollectionRelAnalyticsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getOrgCollectionRelAnalyticsResponse
+}
+
+
+
+/**
+ * Returns program coverage metrics for a specific badge in the library.
+ * @summary Get badge relationship analytics
+ */
+export type getOrgBadgeRelAnalyticsResponse200 = {
+  data: CredBadgeAnalytics
+  status: 200
+}
+
+export type getOrgBadgeRelAnalyticsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getOrgBadgeRelAnalyticsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type getOrgBadgeRelAnalyticsResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getOrgBadgeRelAnalyticsResponseSuccess = (getOrgBadgeRelAnalyticsResponse200) & {
+  headers: Headers;
+};
+export type getOrgBadgeRelAnalyticsResponseError = (getOrgBadgeRelAnalyticsResponse401 | getOrgBadgeRelAnalyticsResponse403 | getOrgBadgeRelAnalyticsResponse404) & {
+  headers: Headers;
+};
+
+export type getOrgBadgeRelAnalyticsResponse = (getOrgBadgeRelAnalyticsResponseSuccess | getOrgBadgeRelAnalyticsResponseError)
+
+export const getGetOrgBadgeRelAnalyticsUrl = (orgId: string,
+    badgeRelId: string,) => {
+
+
+  
+
+  return `/orgs/${orgId}/library/analytics/badges/${badgeRelId}`
+}
+
+export const getOrgBadgeRelAnalytics = async (orgId: string,
+    badgeRelId: string, options?: RequestInit): Promise<getOrgBadgeRelAnalyticsResponse> => {
+  
+  const res = await fetch(getGetOrgBadgeRelAnalyticsUrl(orgId,badgeRelId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getOrgBadgeRelAnalyticsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getOrgBadgeRelAnalyticsResponse
+}
+
+
 export const getRegisterResponseMock = (overrideResponse: Partial< AuthResponse > = {}): AuthResponse => ({accessToken: faker.string.alpha({length: {min: 10, max: 20}}), refreshToken: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), user: {id: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.internet.email(), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), profileImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), bio: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 500}}), undefined]), title: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, ...overrideResponse})
 
 export const getLoginResponseMock = (overrideResponse: Partial< AuthResponse > = {}): AuthResponse => ({accessToken: faker.string.alpha({length: {min: 10, max: 20}}), refreshToken: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), user: {id: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.internet.email(), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), profileImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), bio: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 500}}), undefined]), title: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, ...overrideResponse})
@@ -6682,6 +7473,22 @@ export const getListIssueAuthorizationsResponseMock = (overrideResponse: Partial
 export const getApproveIssueAuthorizationResponseMock = (overrideResponse: Partial< IssueAuthorization > = {}): IssueAuthorization => ({id: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), grantedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
 export const getGetPublicAssertionResponseMock = (overrideResponse: Partial< Assertion > = {}): Assertion => ({id: faker.string.alpha({length: {min: 10, max: 20}}), issuerOrgId: faker.string.alpha({length: {min: 10, max: 20}}), recipientLearnerId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), issuedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', evidenceUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), ...overrideResponse})
+
+export const getListOrgCollectionRelsResponseMock = (overrideResponse: Partial< PagedOrgCollectionRels > = {}): PagedOrgCollectionRels => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}})), ...overrideResponse})
+
+export const getGetOrgCollectionRelResponseMock = (): OrgCollectionRelDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}},...{badgeRels: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}})), undefined])},})
+
+export const getUpdateOrgCollectionRelResponseMock = (overrideResponse: Partial< OrgCollectionRel > = {}): OrgCollectionRel => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, ...overrideResponse})
+
+export const getListOrgBadgeRelsResponseMock = (overrideResponse: Partial< PagedOrgBadgeRels > = {}): PagedOrgBadgeRels => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}})), ...overrideResponse})
+
+export const getGetOrgBadgeRelResponseMock = (overrideResponse: Partial< OrgBadgeRelDetail > = {}): OrgBadgeRelDetail => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), criteria: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])})), undefined]), createdByOrgId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, collectionRel: {id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}}, ...overrideResponse})
+
+export const getGetOrgLibraryAnalyticsResponseMock = (overrideResponse: Partial< CredLibraryAnalytics > = {}): CredLibraryAnalytics => ({adoptionFunnel: {viewedInCatalog: faker.number.int({min: undefined, max: undefined}), requested: faker.number.int({min: undefined, max: undefined}), approved: faker.number.int({min: undefined, max: undefined}), activeInLibrary: faker.number.int({min: undefined, max: undefined}), referencedInPrograms: faker.number.int({min: undefined, max: undefined})}, unusedActiveCount: faker.number.int({min: undefined, max: undefined}), avgTimeToApprovalDays: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined]), topCollections: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), collectionName: faker.string.alpha({length: {min: 10, max: 20}}), programCount: faker.number.int({min: undefined, max: undefined})})), undefined]), ...overrideResponse})
+
+export const getGetOrgCollectionRelAnalyticsResponseMock = (overrideResponse: Partial< CredCollectionAnalytics > = {}): CredCollectionAnalytics => ({collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, programCount: faker.number.int({min: undefined, max: undefined}), programs: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})})), undefined]), badgeAdoption: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({badgeRelId: faker.string.alpha({length: {min: 10, max: 20}}), badgeName: faker.string.alpha({length: {min: 10, max: 20}}), programCount: faker.number.int({min: undefined, max: undefined})})), undefined]), ...overrideResponse})
+
+export const getGetOrgBadgeRelAnalyticsResponseMock = (overrideResponse: Partial< CredBadgeAnalytics > = {}): CredBadgeAnalytics => ({badgeRelId: faker.string.alpha({length: {min: 10, max: 20}}), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), criteria: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])})), undefined]), createdByOrgId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, programCount: faker.number.int({min: undefined, max: undefined}), programs: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})})), undefined]), ...overrideResponse})
 
 
 export const getRegisterMockHandler = (overrideResponse?: AuthResponse | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<AuthResponse> | AuthResponse), options?: RequestHandlerOptions) => {
@@ -7561,6 +8368,102 @@ export const getGetPublicAssertionMockHandler = (overrideResponse?: Assertion | 
       })
   }, options)
 }
+
+export const getListOrgCollectionRelsMockHandler = (overrideResponse?: PagedOrgCollectionRels | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PagedOrgCollectionRels> | PagedOrgCollectionRels), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/library/collections', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListOrgCollectionRelsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetOrgCollectionRelMockHandler = (overrideResponse?: OrgCollectionRelDetail | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<OrgCollectionRelDetail> | OrgCollectionRelDetail), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/library/collections/:collectionRelId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetOrgCollectionRelResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getUpdateOrgCollectionRelMockHandler = (overrideResponse?: OrgCollectionRel | ((info: Parameters<Parameters<typeof http.patch>[1]>[0]) => Promise<OrgCollectionRel> | OrgCollectionRel), options?: RequestHandlerOptions) => {
+  return http.patch('*/orgs/:orgId/library/collections/:collectionRelId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getUpdateOrgCollectionRelResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getListOrgBadgeRelsMockHandler = (overrideResponse?: PagedOrgBadgeRels | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PagedOrgBadgeRels> | PagedOrgBadgeRels), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/library/badges', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListOrgBadgeRelsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetOrgBadgeRelMockHandler = (overrideResponse?: OrgBadgeRelDetail | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<OrgBadgeRelDetail> | OrgBadgeRelDetail), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/library/badges/:badgeRelId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetOrgBadgeRelResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetOrgLibraryAnalyticsMockHandler = (overrideResponse?: CredLibraryAnalytics | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<CredLibraryAnalytics> | CredLibraryAnalytics), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/library/analytics', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetOrgLibraryAnalyticsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetOrgCollectionRelAnalyticsMockHandler = (overrideResponse?: CredCollectionAnalytics | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<CredCollectionAnalytics> | CredCollectionAnalytics), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/library/analytics/collections/:collectionRelId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetOrgCollectionRelAnalyticsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetOrgBadgeRelAnalyticsMockHandler = (overrideResponse?: CredBadgeAnalytics | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<CredBadgeAnalytics> | CredBadgeAnalytics), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/library/analytics/badges/:badgeRelId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetOrgBadgeRelAnalyticsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
 export const getBadgingAppAPIV0Mock = () => [
   getRegisterMockHandler(),
   getLoginMockHandler(),
@@ -7636,5 +8539,13 @@ export const getBadgingAppAPIV0Mock = () => [
   getListIssueAuthorizationsMockHandler(),
   getApproveIssueAuthorizationMockHandler(),
   getRejectIssueAuthorizationMockHandler(),
-  getGetPublicAssertionMockHandler()
+  getGetPublicAssertionMockHandler(),
+  getListOrgCollectionRelsMockHandler(),
+  getGetOrgCollectionRelMockHandler(),
+  getUpdateOrgCollectionRelMockHandler(),
+  getListOrgBadgeRelsMockHandler(),
+  getGetOrgBadgeRelMockHandler(),
+  getGetOrgLibraryAnalyticsMockHandler(),
+  getGetOrgCollectionRelAnalyticsMockHandler(),
+  getGetOrgBadgeRelAnalyticsMockHandler()
 ]

@@ -8,14 +8,25 @@ export default [
   route("test", "routes/test.tsx"),
   layout("layouts/app-layout.tsx", [
     route(":orgSlug", "routes/dashboard/dashboard.tsx", { index: true }),
+    // Credentials — Library (staff + admin)
     route(":orgSlug/credentials", "routes/credentials/credentials.tsx"),
-    route(":orgSlug/credentials/collections", "routes/credentials/collections.tsx"),
-    route(":orgSlug/credentials/browse", "routes/credentials/browse.tsx"),
-    route(":orgSlug/credentials/create", "routes/credentials/create.tsx"),
-    route(":orgSlug/credentials/collections/:collectionId", "routes/credentials/detail.tsx"),
-    route(":orgSlug/credentials/collections/:collectionId/:badgeId", "routes/credentials/badge-detail.tsx"),
+    route(":orgSlug/credentials/collections", "routes/credentials/collections-redirect.tsx"),
+    route(":orgSlug/credentials/collections/:collectionRelId", "routes/credentials/collection-rel-detail.tsx"),
+    route(":orgSlug/credentials/badges", "routes/credentials/badges-redirect.tsx"),
+    route(":orgSlug/credentials/badges/:badgeRelId", "routes/credentials/badge-rel-detail.tsx"),
+    // Credentials — Catalog (admin only)
+    route(":orgSlug/credentials/catalog", "routes/credentials/catalog/catalog.tsx"),
+    route(":orgSlug/credentials/catalog/collections/:collectionId", "routes/credentials/catalog/catalog-collection-detail.tsx"),
+    route(":orgSlug/credentials/catalog/badges/:badgeId", "routes/credentials/catalog/catalog-badge-detail.tsx"),
+    // Credentials — Analytics (admin only)
+    route(":orgSlug/credentials/analytics", "routes/credentials/analytics/analytics.tsx"),
+    route(":orgSlug/credentials/analytics/collections/:collectionRelId", "routes/credentials/analytics/analytics-collection.tsx"),
+    route(":orgSlug/credentials/analytics/badges/:badgeRelId", "routes/credentials/analytics/analytics-badge.tsx"),
+    // Credentials — Programs (staff + admin; create/edit admin only)
     route(":orgSlug/credentials/programs", "routes/credentials/programs/programs.tsx"),
-    route(":orgSlug/credentials/programs/:programSlug", "routes/credentials/programs/program-detail.tsx"),
+    route(":orgSlug/credentials/programs/new", "routes/credentials/programs/program-new.tsx"),
+    route(":orgSlug/credentials/programs/:programId", "routes/credentials/programs/program-detail.tsx"),
+    route(":orgSlug/credentials/programs/:programId/edit", "routes/credentials/programs/program-edit.tsx"),
     route(":orgSlug/learners", "routes/learners/learners.tsx"),
     route(":orgSlug/learners/cohorts", "routes/learners/cohorts.tsx"),
     route(":orgSlug/learners/cohorts/:cohortSlug", "routes/learners/cohort-detail.tsx"),

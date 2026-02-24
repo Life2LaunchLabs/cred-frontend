@@ -12,11 +12,20 @@ import type { NavItem } from '~/components/MenuContent';
 
 export function useNavItems() {
   const orgPath = useOrgPath();
-  const { activeOrg } = useOrg();
+  const { activeOrg, isAdmin } = useOrg();
 
   const features = activeOrg?.org.features ?? [];
   const isCreator = features.includes('creator');
   const isIssuer = features.includes('issuer');
+
+  const credentialsSubItems: NavItem[] = [
+    { id: 'credentials-library', label: 'Library', path: orgPath('/credentials') },
+    { id: 'credentials-programs', label: 'Programs', path: orgPath('/credentials/programs') },
+    ...(isAdmin ? [
+      { id: 'credentials-catalog', label: 'Catalog', path: orgPath('/credentials/catalog') },
+      { id: 'credentials-analytics', label: 'Analytics', path: orgPath('/credentials/analytics') },
+    ] as NavItem[] : []),
+  ];
 
   const primaryItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardRoundedIcon />, path: orgPath(), exact: true },
@@ -27,11 +36,7 @@ export function useNavItems() {
         label: 'Credentials',
         icon: <BadgeRoundedIcon />,
         path: orgPath('/credentials'),
-        subItems: [
-          { id: 'credentials-overview', label: 'Overview', path: orgPath('/credentials') },
-          { id: 'credentials-programs', label: 'Programs', path: orgPath('/credentials/programs') },
-          { id: 'credentials-collections', label: 'Collections', path: orgPath('/credentials/collections') },
-        ],
+        subItems: credentialsSubItems,
       },
     ] as NavItem[] : []),
     ...(isCreator ? [

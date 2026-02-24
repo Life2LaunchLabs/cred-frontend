@@ -5,6 +5,8 @@ import type {
   CollectionDetail,
   LoginRequest,
   OrgLearnerDetail,
+  OrgCollectionRelDetail,
+  OrgBadgeRelDetail,
   ProgramDetail,
   CohortProgramAssignmentDetail,
   LearnerProgramAssignmentDetail,
@@ -46,6 +48,15 @@ import {
   CREATOR_COLLECTION_STATS,
   CREATOR_AUTH_REQUESTS,
 } from "./creator-data";
+import {
+  FAKE_ORG_COLLECTION_RELS,
+  FAKE_COLLECTION_REL_BY_ID,
+  FAKE_ORG_BADGE_RELS,
+  FAKE_BADGE_REL_BY_ID,
+  FAKE_LIBRARY_ANALYTICS,
+  FAKE_COLLECTION_REL_ANALYTICS,
+  FAKE_BADGE_REL_ANALYTICS,
+} from "./library-data";
 
 // Merged org lookups include both spec orgs and demo orgs
 const ALL_ORG_DETAILS = { ...FAKE_ORG_DETAILS, ...DEMO_ORGS };
@@ -134,6 +145,196 @@ export const handlers = [
       },
       { status: 200 },
     );
+  }),
+
+  // Credential Library (specific routes before generic orgs/:orgId)
+  http.get("*/orgs/:orgId/library/analytics/collections/:collectionRelId", ({ params }) => {
+    const analytics = FAKE_COLLECTION_REL_ANALYTICS[params.collectionRelId as string];
+    if (!analytics) {
+      return HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    return HttpResponse.json(analytics, { status: 200 });
+  }),
+
+  http.get("*/orgs/:orgId/library/analytics/badges/:badgeRelId", ({ params }) => {
+    const badgeRelId = params.badgeRelId as string;
+    const analytics = FAKE_BADGE_REL_ANALYTICS[badgeRelId];
+    if (analytics) {
+      return HttpResponse.json(analytics, { status: 200 });
+    }
+    // Fallback: generate from badge rel + ALL_BADGES
+    const badgeRel = FAKE_BADGE_REL_BY_ID[badgeRelId];
+    if (!badgeRel) {
+      return HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    const fullBadge = ALL_BADGES.find((b) => b.id === badgeRel.badgeId);
+    if (!fullBadge) {
+      return HttpResponse.json({ message: "Badge not found" }, { status: 404 });
+    }
+    return HttpResponse.json(
+      { badgeRelId, badge: fullBadge, programCount: badgeRel.programCount, programs: [] },
+      { status: 200 }
+    );
+  }),
+
+  http.get("*/orgs/:orgId/library/analytics", ({ params }) => {
+    const analytics = FAKE_LIBRARY_ANALYTICS[params.orgId as string];
+    if (!analytics) {
+      // Return empty analytics rather than 404
+      return HttpResponse.json(
+        {
+          adoptionFunnel: { viewedInCatalog: 0, requested: 0, approved: 0, activeInLibrary: 0, referencedInPrograms: 0 },
+          unusedActiveCount: 0,
+          avgTimeToApprovalDays: 0,
+          topCollections: [],
+        },
+        { status: 200 }
+      );
+    }
+    return HttpResponse.json(analytics, { status: 200 });
+  }),
+
+  http.get("*/orgs/:orgId/library/collections/:collectionRelId", ({ params }) => {
+    const rel = FAKE_COLLECTION_REL_BY_ID[params.collectionRelId as string];
+    if (!rel) {
+      return HttpResponse.json({ message: "Collection relationship not found" }, { status: 404 });
+    }
+    const badgeRels = FAKE_ORG_BADGE_RELS[rel.id] ?? [];
+    const detail: OrgCollectionRelDetail = { ...rel, badgeRels };
+    return HttpResponse.json(detail, { status: 200 });
+  }),
+
+  http.patch("*/orgs/:orgId/library/collections/:collectionRelId", async ({ params, request }) => {
+    const rel = FAKE_COLLECTION_REL_BY_ID[params.collectionRelId as string];
+    if (!rel) {
+      return HttpResponse.json({ message: "Collection relationship not found" }, { status: 404 });
+    }
+    const body = (await request.json()) as { status?: string; notes?: string };
+    const updated = {
+      ...rel,
+      ...(body.status ? { status: body.status as typeof rel.status } : {}),
+      ...(body.notes !== undefined ? { notes: body.notes } : {}),
+      statusChangedAt: new Date().toISOString(),
+    };
+    return HttpResponse.json(updated, { status: 200 });
+  }),
+
+  http.get("*/orgs/:orgId/library/collections", ({ params, request }) => {
+    const orgId = params.orgId as string;
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status");
+    const q = url.searchParams.get("q")?.toLowerCase();
+
+    let results = FAKE_ORG_COLLECTION_RELS[orgId] ?? [];
+    if (status) results = results.filter((r) => r.status === status);
+    if (q) results = results.filter((r) => r.collection.name.toLowerCase().includes(q));
+
+    return HttpResponse.json(
+      { meta: { page: 1, pageSize: 25, total: results.length }, data: results },
+      { status: 200 }
+    );
+  }),
+
+  http.get("*/orgs/:orgId/library/badges/:badgeRelId", ({ params }) => {
+    const badgeRel = FAKE_BADGE_REL_BY_ID[params.badgeRelId as string];
+    if (!badgeRel) {
+      return HttpResponse.json({ message: "Badge relationship not found" }, { status: 404 });
+    }
+    const fullBadge = ALL_BADGES.find((b) => b.id === badgeRel.badgeId);
+    if (!fullBadge) {
+      return HttpResponse.json({ message: "Badge not found" }, { status: 404 });
+    }
+    const collectionRel = FAKE_COLLECTION_REL_BY_ID[badgeRel.collectionRelId];
+    if (!collectionRel) {
+      return HttpResponse.json({ message: "Collection relationship not found" }, { status: 404 });
+    }
+    const detail: OrgBadgeRelDetail = {
+      id: badgeRel.id,
+      orgId: badgeRel.orgId,
+      badgeId: badgeRel.badgeId,
+      collectionRelId: badgeRel.collectionRelId,
+      status: badgeRel.status as OrgBadgeRelDetail['status'],
+      programCount: badgeRel.programCount,
+      badge: fullBadge,
+      collectionRel,
+    };
+    return HttpResponse.json(detail, { status: 200 });
+  }),
+
+  http.get("*/orgs/:orgId/library/badges", ({ params, request }) => {
+    const orgId = params.orgId as string;
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status");
+    const collectionRelId = url.searchParams.get("collectionRelId");
+    const q = url.searchParams.get("q")?.toLowerCase();
+
+    const orgRels = FAKE_ORG_COLLECTION_RELS[orgId] ?? [];
+    let results = orgRels.flatMap((rel) => FAKE_ORG_BADGE_RELS[rel.id] ?? []);
+
+    if (status) results = results.filter((r) => r.status === status);
+    if (collectionRelId) results = results.filter((r) => r.collectionRelId === collectionRelId);
+    if (q) results = results.filter((r) => r.badge.name.toLowerCase().includes(q));
+
+    return HttpResponse.json(
+      { meta: { page: 1, pageSize: 50, total: results.length }, data: results },
+      { status: 200 }
+    );
+  }),
+
+  // Demo: add col_rci_1 (Welding Fundamentals) to the org's library
+  http.post("*/orgs/:orgId/library/demo", ({ params }) => {
+    const orgId = params.orgId as string;
+    const colId = 'col_rci_1';
+
+    if (!FAKE_ORG_COLLECTION_RELS[orgId]) {
+      FAKE_ORG_COLLECTION_RELS[orgId] = [];
+    }
+    const existing = FAKE_ORG_COLLECTION_RELS[orgId].find((r) => r.collectionId === colId);
+    if (existing) {
+      return HttpResponse.json(existing, { status: 200 });
+    }
+
+    const collection = ALL_COLLECTIONS.find((c) => c.id === colId)!;
+    const now = new Date().toISOString();
+    const newRel = {
+      id: 'ccr_demo_1',
+      orgId,
+      collectionId: colId,
+      status: 'active' as const,
+      source: 'authorized' as const,
+      programCount: 0,
+      authRequestId: 'iar_demo_1',
+      collection,
+      requestedAt: now,
+      approvedAt: now,
+      statusChangedAt: now,
+    };
+
+    FAKE_ORG_COLLECTION_RELS[orgId].push(newRel);
+    FAKE_COLLECTION_REL_BY_ID[newRel.id] = newRel;
+
+    const summaries = ALL_BADGE_SUMMARIES[colId] ?? [];
+    const badgeRels = summaries.map((summary, i) => ({
+      id: `cbr_${newRel.id}_${i + 1}`,
+      orgId,
+      badgeId: summary.id,
+      collectionRelId: newRel.id,
+      status: 'active' as const,
+      programCount: 0,
+      badge: {
+        id: summary.id,
+        name: summary.name,
+        description: summary.description,
+        imageUrl: summary.imageUrl,
+        issuanceCount: summary.issuanceCount,
+      },
+    }));
+    FAKE_ORG_BADGE_RELS[newRel.id] = badgeRels;
+    for (const br of badgeRels) {
+      FAKE_BADGE_REL_BY_ID[br.id] = br;
+    }
+
+    return HttpResponse.json(newRel, { status: 201 });
   }),
 
   http.get("*/orgs/:orgId", ({ params }) => {

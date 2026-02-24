@@ -1,19 +1,63 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
+import Paper from '@mui/material/Paper';
+import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useNavigate } from 'react-router';
-import { ProgramCard } from '~/components/ProgramCard';
+import { listPrograms } from '~/api/generated';
 import { useOrg } from '~/context/OrgContext';
 import { useOrgPath } from '~/hooks/useOrgPath';
-import { listPrograms } from '~/api/generated';
 import type { Program } from '~/api/generated';
 
+const STATUS_COLOR: Record<string, 'success' | 'warning' | 'default'> = {
+  active: 'success',
+  draft: 'warning',
+  archived: 'default',
+};
+
+function ProgramRow({ program, onClick }: { program: Program; onClick: () => void }) {
+  return (
+    <Paper
+      variant="outlined"
+      onClick={onClick}
+      sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { borderColor: 'primary.main' } }}
+    >
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>{program.name}</Typography>
+        {program.description && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {program.description}
+          </Typography>
+        )}
+      </Box>
+      <Stack direction="row" alignItems="center" gap={1} sx={{ flexShrink: 0 }}>
+        {program.totalBadgeCount != null && (
+          <Typography variant="caption" color="text.secondary">
+            {program.totalBadgeCount} {program.totalBadgeCount === 1 ? 'badge' : 'badges'}
+          </Typography>
+        )}
+        <Chip
+          label={program.status.charAt(0).toUpperCase() + program.status.slice(1)}
+          size="small"
+          color={STATUS_COLOR[program.status] ?? 'default'}
+          variant="outlined"
+          sx={{ height: 20, fontSize: '0.7rem' }}
+        />
+      </Stack>
+    </Paper>
+  );
+}
+
 export default function Programs() {
-  const { activeOrg } = useOrg();
+  const { activeOrg, isAdmin } = useOrg();
   const navigate = useNavigate();
   const orgPath = useOrgPath();
+
   const [allPrograms, setAllPrograms] = React.useState<Program[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -24,93 +68,104 @@ export default function Programs() {
     async function fetchPrograms() {
       setIsLoading(true);
       const res = await listPrograms(activeOrg!.org.id);
-      if (!cancelled && res.status === 200) {
-        setAllPrograms(res.data.data);
+      if (!cancelled) {
+        if (res.status === 200) setAllPrograms(res.data.data);
+        setIsLoading(false);
       }
-      if (!cancelled) setIsLoading(false);
     }
 
     fetchPrograms();
     return () => { cancelled = true; };
   }, [activeOrg]);
 
-  const handleProgramClick = (program: Program) => {
-    navigate(orgPath(`/credentials/programs/${program.slug}`));
-  };
-
   const activePrograms = allPrograms.filter((p) => p.status === 'active');
   const draftPrograms = allPrograms.filter((p) => p.status === 'draft');
   const archivedPrograms = allPrograms.filter((p) => p.status === 'archived');
 
-  const renderProgramGrid = (programs: Program[], emptyMessage: string) => {
+  function handleProgramClick(program: Program) {
+    navigate(orgPath(`/credentials/programs/${program.id}`));
+  }
+
+  function renderSection(programs: Program[], emptyMessage: string) {
     if (isLoading) {
       return (
-        <Grid container spacing={2}>
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
-              <Box
-                sx={{
-                  width: '100%',
-                  height: 168,
-                  borderRadius: 2,
-                  bgcolor: 'grey.200',
-                }}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <Stack gap={1}>
+          {[1, 2].map((i) => <Skeleton key={i} height={56} sx={{ borderRadius: 1 }} />)}
+        </Stack>
       );
     }
-
     if (programs.length === 0) {
       return (
-        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
           {emptyMessage}
         </Typography>
       );
     }
-
     return (
-      <Grid container spacing={2}>
-        {programs.map((program) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={program.id}>
-            <ProgramCard program={program} onClick={handleProgramClick} />
-          </Grid>
+      <Stack gap={1}>
+        {programs.map((p) => (
+          <ProgramRow key={p.id} program={p} onClick={() => handleProgramClick(p)} />
         ))}
-      </Grid>
+      </Stack>
     );
-  };
+  }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' } }}>
-      <Typography component="h2" variant="h6" sx={{ mb: 3 }}>
-        All Programs
-      </Typography>
-
-      <Stack spacing={4}>
-        {/* Active Programs */}
+    <Box sx={{ width: '100%', maxWidth: 820, pb: 4 }}>
+      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 3 }} gap={2}>
         <Box>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-            Active Programs
+          <Typography component="h2" variant="h6">Programs</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Structured credential pathways for your learners
           </Typography>
-          {renderProgramGrid(activePrograms, 'No active programs')}
+        </Box>
+        {isAdmin && (
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddRoundedIcon />}
+            onClick={() => navigate(orgPath('/credentials/programs/new'))}
+            sx={{ textTransform: 'none', flexShrink: 0 }}
+          >
+            New program
+          </Button>
+        )}
+      </Stack>
+
+      <Stack gap={3}>
+        {/* Active */}
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+            Active
+          </Typography>
+          {renderSection(activePrograms, 'No active programs.')}
         </Box>
 
-        {/* Draft Programs */}
-        <Box>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-            Draft Programs
-          </Typography>
-          {renderProgramGrid(draftPrograms, 'No draft programs')}
-        </Box>
+        {/* Draft — admin only */}
+        {(isAdmin || draftPrograms.length > 0) && (
+          <>
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+                Draft
+              </Typography>
+              {renderSection(draftPrograms, 'No draft programs.')}
+            </Box>
+          </>
+        )}
 
-        {/* Archived Programs */}
-        <Box>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-            Archived Programs
-          </Typography>
-          {renderProgramGrid(archivedPrograms, 'No archived programs')}
-        </Box>
+        {/* Archived — admin only */}
+        {(isAdmin || archivedPrograms.length > 0) && (
+          <>
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
+                Archived
+              </Typography>
+              {renderSection(archivedPrograms, 'No archived programs.')}
+            </Box>
+          </>
+        )}
       </Stack>
     </Box>
   );
