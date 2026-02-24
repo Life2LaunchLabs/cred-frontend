@@ -7,6 +7,7 @@ import type {
   OrgLearnerDetail,
   OrgCollectionRelDetail,
   OrgBadgeRelDetail,
+  Program,
   ProgramDetail,
   CohortProgramAssignmentDetail,
   LearnerProgramAssignmentDetail,
@@ -335,6 +336,74 @@ export const handlers = [
     }
 
     return HttpResponse.json(newRel, { status: 201 });
+  }),
+
+  // Demo: add the New Hire Welding Certification program to the org
+  http.post("*/orgs/:orgId/programs/demo", ({ params }) => {
+    const orgId = params.orgId as string;
+    const id = 'prg_6';
+
+    if (FAKE_PROGRAMS[id]) {
+      return HttpResponse.json(FAKE_PROGRAMS[id], { status: 200 });
+    }
+
+    const program: Program = {
+      id,
+      orgId,
+      name: 'New Hire Welding Certification',
+      slug: 'new-hire-welding-certification',
+      description: 'Structured onboarding pathway for new welders. Covers shop safety, core welding processes, and weld quality inspection before a new hire works independently.',
+      status: 'active',
+      phaseCount: 3,
+      totalBadgeCount: 4,
+      totalCheckpointCount: 4,
+      createdAt: '2025-11-01T08:00:00Z',
+      updatedAt: new Date().toISOString(),
+    };
+
+    FAKE_PROGRAMS[id] = program;
+    FAKE_PROGRAM_PHASES[id] = [
+      {
+        id: 'phs_15',
+        name: 'Shop Safety & Orientation',
+        description: 'Before touching any equipment, every new hire completes safety training and a supervised facility walkthrough.',
+        order: 0,
+        badges: [
+          { id: 'bdg_rci_1', name: 'Weld Safety & PPE', collectionId: 'col_rci_1', imageUrl: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=128&h=128&fit=crop' },
+        ],
+        checkpoints: [
+          { id: 'chk_26', label: 'Sign and acknowledge shop safety rules', isRequired: true },
+          { id: 'chk_27', label: 'Complete facility walkthrough with supervisor', isRequired: true },
+        ],
+      },
+      {
+        id: 'phs_16',
+        name: 'Cutting & Welding Fundamentals',
+        description: 'Introduction to oxy-fuel cutting and SMAW — the two core processes used in the shop.',
+        order: 1,
+        badges: [
+          { id: 'bdg_rci_2', name: 'Oxy-Fuel Cutting Basics', collectionId: 'col_rci_1', imageUrl: 'https://images.unsplash.com/photo-1565118531796-763e5082d113?w=128&h=128&fit=crop' },
+          { id: 'bdg_rci_3', name: 'Shielded Metal Arc Welding (SMAW) Intro', collectionId: 'col_rci_1', imageUrl: 'https://images.unsplash.com/photo-1581092334651-ddf26d9a09d0?w=128&h=128&fit=crop' },
+        ],
+        checkpoints: [
+          { id: 'chk_28', label: 'Supervisor sign-off on first independent weld', isRequired: true },
+        ],
+      },
+      {
+        id: 'phs_17',
+        name: 'Quality & Inspection',
+        description: 'New hires learn to inspect their own work before a final 30-day review with the lead welder.',
+        order: 2,
+        badges: [
+          { id: 'bdg_rci_4', name: 'Weld Inspection Fundamentals', collectionId: 'col_rci_1', imageUrl: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=128&h=128&fit=crop' },
+        ],
+        checkpoints: [
+          { id: 'chk_29', label: '30-day performance review with lead welder', isRequired: true },
+        ],
+      },
+    ];
+
+    return HttpResponse.json(program, { status: 201 });
   }),
 
   http.get("*/orgs/:orgId", ({ params }) => {

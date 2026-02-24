@@ -60,6 +60,9 @@ export default function Programs() {
 
   const [allPrograms, setAllPrograms] = React.useState<Program[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [refetchKey, setRefetchKey] = React.useState(0);
+  const [isAddingDemo, setIsAddingDemo] = React.useState(false);
+  const demoRestoredRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!activeOrg) return;
@@ -67,6 +70,13 @@ export default function Programs() {
 
     async function fetchPrograms() {
       setIsLoading(true);
+      if (!demoRestoredRef.current) {
+        demoRestoredRef.current = true;
+        const demoKey = `demo:prg_6:${activeOrg!.org.id}`;
+        if (localStorage.getItem(demoKey)) {
+          await fetch(`/orgs/${activeOrg!.org.id}/programs/demo`, { method: 'POST' });
+        }
+      }
       const res = await listPrograms(activeOrg!.org.id);
       if (!cancelled) {
         if (res.status === 200) setAllPrograms(res.data.data);
@@ -76,7 +86,7 @@ export default function Programs() {
 
     fetchPrograms();
     return () => { cancelled = true; };
-  }, [activeOrg]);
+  }, [activeOrg, refetchKey]);
 
   const activePrograms = allPrograms.filter((p) => p.status === 'active');
   const draftPrograms = allPrograms.filter((p) => p.status === 'draft');
@@ -86,7 +96,7 @@ export default function Programs() {
     navigate(orgPath(`/credentials/programs/${program.id}`));
   }
 
-  function renderSection(programs: Program[], emptyMessage: string) {
+  function renderSection(programs: Program[], emptyMessage: string, showDemoButton = false) {
     if (isLoading) {
       return (
         <Stack gap={1}>
@@ -96,9 +106,28 @@ export default function Programs() {
     }
     if (programs.length === 0) {
       return (
-        <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-          {emptyMessage}
-        </Typography>
+        <Box>
+          <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+            {emptyMessage}
+          </Typography>
+          {showDemoButton && isAdmin && (
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={isAddingDemo}
+              sx={{ mt: 0.5, textTransform: 'none' }}
+              onClick={async () => {
+                setIsAddingDemo(true);
+                await fetch(`/orgs/${activeOrg!.org.id}/programs/demo`, { method: 'POST' });
+                localStorage.setItem(`demo:prg_6:${activeOrg!.org.id}`, '1');
+                setIsAddingDemo(false);
+                setRefetchKey((k) => k + 1);
+              }}
+            >
+              {isAddingDemo ? 'Adding…' : 'Load demo program'}
+            </Button>
+          )}
+        </Box>
       );
     }
     return (
@@ -138,7 +167,7 @@ export default function Programs() {
           <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
             Active
           </Typography>
-          {renderSection(activePrograms, 'No active programs.')}
+          {renderSection(activePrograms, 'No active programs.', true)}
         </Box>
 
         {/* Draft — admin only */}
