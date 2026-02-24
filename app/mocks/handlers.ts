@@ -33,6 +33,29 @@ import {
   FAKE_CHECKPOINT_COMPLETIONS,
   FAKE_LEARNER_BADGE_PROGRESS,
 } from "./data";
+import {
+  DEMO_ORGS,
+  DEMO_ORG_STATS,
+  DEMO_USER_ORGS,
+  DEMO_USER_PROFILES,
+} from "./demo-personas";
+import {
+  CREATOR_BADGES,
+  CREATOR_COLLECTIONS,
+  CREATOR_BADGE_SUMMARIES,
+  CREATOR_COLLECTION_STATS,
+  CREATOR_AUTH_REQUESTS,
+} from "./creator-data";
+
+// Merged org lookups include both spec orgs and demo orgs
+const ALL_ORG_DETAILS = { ...FAKE_ORG_DETAILS, ...DEMO_ORGS };
+const ALL_ORG_STATS = { ...FAKE_ORG_STATS, ...DEMO_ORG_STATS };
+
+// Merged collection + badge lookups include creator data
+const ALL_COLLECTIONS = [...FAKE_COLLECTIONS, ...CREATOR_COLLECTIONS];
+const ALL_BADGES = [...FAKE_BADGES, ...CREATOR_BADGES];
+const ALL_BADGE_SUMMARIES = { ...FAKE_BADGE_SUMMARIES, ...CREATOR_BADGE_SUMMARIES };
+const ALL_COLLECTION_STATS = { ...FAKE_COLLECTION_STATS, ...CREATOR_COLLECTION_STATS };
 
 // ---------- Handlers ----------
 
@@ -84,13 +107,18 @@ export const handlers = [
     );
   }),
 
-  http.get("*/users/:userId/orgs", () => {
+  http.get("*/users/:userId/orgs", ({ params }) => {
+    const userId = params.userId as string;
+    const demoOrgs = DEMO_USER_ORGS[userId];
+    if (demoOrgs) {
+      return HttpResponse.json(demoOrgs, { status: 200 });
+    }
     return HttpResponse.json(FAKE_USER_ORGS, { status: 200 });
   }),
 
   // Org-specific routes (more specific first)
   http.get("*/orgs/:orgId/stats", ({ params }) => {
-    const stats = FAKE_ORG_STATS[params.orgId as string];
+    const stats = ALL_ORG_STATS[params.orgId as string];
     if (!stats) {
       return HttpResponse.json({ message: "Org not found" }, { status: 404 });
     }
@@ -109,7 +137,7 @@ export const handlers = [
   }),
 
   http.get("*/orgs/:orgId", ({ params }) => {
-    const org = FAKE_ORG_DETAILS[params.orgId as string];
+    const org = ALL_ORG_DETAILS[params.orgId as string];
     if (!org) {
       return HttpResponse.json({ message: "Org not found" }, { status: 404 });
     }
@@ -118,7 +146,7 @@ export const handlers = [
 
   // Badges
   http.get("*/badges/:badgeId", ({ params }) => {
-    const badge = FAKE_BADGES.find((b) => b.id === params.badgeId);
+    const badge = ALL_BADGES.find((b) => b.id === params.badgeId);
     if (!badge) {
       return HttpResponse.json({ message: "Badge not found" }, { status: 404 });
     }
@@ -128,15 +156,15 @@ export const handlers = [
   // Collections
   http.get("*/collections/:collectionId", ({ params }) => {
     const collectionId = params.collectionId as string;
-    const collection = FAKE_COLLECTIONS.find((c) => c.id === collectionId);
+    const collection = ALL_COLLECTIONS.find((c) => c.id === collectionId);
     if (!collection) {
       return HttpResponse.json({ message: "Collection not found" }, { status: 404 });
     }
 
     const detail: CollectionDetail = {
       ...collection,
-      badgeSummaries: FAKE_BADGE_SUMMARIES[collectionId] ?? [],
-      stats: FAKE_COLLECTION_STATS[collectionId] ?? {
+      badgeSummaries: ALL_BADGE_SUMMARIES[collectionId] ?? [],
+      stats: ALL_COLLECTION_STATS[collectionId] ?? {
         totalIssuances: 0,
         uniqueLearners: 0,
         badgeCount: collection.badgeCount ?? 0,
@@ -150,7 +178,7 @@ export const handlers = [
   http.get("*/registry/collections", ({ request }) => {
     const url = new URL(request.url);
     const q = url.searchParams.get("q")?.toLowerCase();
-    let results = FAKE_COLLECTIONS.filter((c) => c.published);
+    let results = ALL_COLLECTIONS.filter((c) => c.published);
     if (q) {
       results = results.filter((c) => c.name.toLowerCase().includes(q));
     }
@@ -163,11 +191,37 @@ export const handlers = [
     );
   }),
 
+  // Creator Studio endpoints
+  http.get("*/orgs/:orgId/creator/authorizations", ({ params, request }) => {
+    const orgId = params.orgId as string;
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status");
+    let results = CREATOR_AUTH_REQUESTS.filter(
+      (r) => CREATOR_COLLECTIONS.some((c) => c.id === r.collectionId && c.createdByOrgId === orgId)
+    );
+    if (status) {
+      results = results.filter((r) => r.status === status);
+    }
+    return HttpResponse.json(
+      { meta: { page: 1, pageSize: 25, totalCount: results.length, totalPages: 1 }, data: results },
+      { status: 200 },
+    );
+  }),
+
+  http.get("*/issue-authorizations/:authRequestId", ({ params }) => {
+    const authRequestId = params.authRequestId as string;
+    const req = CREATOR_AUTH_REQUESTS.find((r) => r.id === authRequestId);
+    if (!req) {
+      return HttpResponse.json({ message: "Authorization request not found" }, { status: 404 });
+    }
+    return HttpResponse.json(req, { status: 200 });
+  }),
+
   http.get("*/collections", ({ request }) => {
     const url = new URL(request.url);
     const orgId = url.searchParams.get("orgId");
     const q = url.searchParams.get("q")?.toLowerCase();
-    let results = FAKE_COLLECTIONS;
+    let results = ALL_COLLECTIONS;
     if (orgId) {
       results = results.filter((c) => c.createdByOrgId === orgId);
     }
@@ -183,7 +237,12 @@ export const handlers = [
     );
   }),
 
-  http.get("*/users/:userId", () => {
+  http.get("*/users/:userId", ({ params }) => {
+    const userId = params.userId as string;
+    const demoUser = DEMO_USER_PROFILES[userId];
+    if (demoUser) {
+      return HttpResponse.json(demoUser, { status: 200 });
+    }
     return HttpResponse.json(FAKE_USER_PROFILE, { status: 200 });
   }),
 

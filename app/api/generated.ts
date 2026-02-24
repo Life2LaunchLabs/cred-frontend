@@ -782,6 +782,21 @@ export interface PagedLearnerBadges {
 }
 
 /**
+ * Creator workflow status of this collection.
+ */
+export type CollectionStatus = typeof CollectionStatus[keyof typeof CollectionStatus];
+
+
+export const CollectionStatus = {
+  draft: 'draft',
+  in_review: 'in_review',
+  changes_requested: 'changes_requested',
+  approved: 'approved',
+  published: 'published',
+  archived: 'archived',
+} as const;
+
+/**
  * A curated group of badges, optionally published to the public registry.
  */
 export interface Collection {
@@ -797,6 +812,8 @@ export interface Collection {
   imageUrl?: string;
   /** Total number of badges in the collection. */
   badgeCount?: number;
+  /** Creator workflow status of this collection. */
+  status?: CollectionStatus;
   /** Whether this collection is visible in the public registry. */
   published?: boolean;
   createdAt?: ISODateTime;
@@ -935,6 +952,18 @@ export interface PagedIssueAuthorizationRequests {
   meta: PagedMeta;
   data: IssueAuthorizationRequest[];
 }
+
+export type IssueAuthorizationRequestDetail = IssueAuthorizationRequest & {
+  requestingOrg?: Org;
+  collection?: {
+  id: string;
+  name: string;
+  badgeCount?: number;
+};
+  /** Note provided when the request was approved or rejected. */
+  decisionNote?: string;
+  decidedAt?: ISODateTime;
+};
 
 /**
  * Current cohort status.
@@ -1767,6 +1796,30 @@ page?: PageParameter;
  */
 pageSize?: PageSizeParameter;
 };
+
+export type ListCreatorAuthorizationsParams = {
+status?: ListCreatorAuthorizationsStatus;
+/**
+ * Page number (1-indexed).
+ * @minimum 1
+ */
+page?: PageParameter;
+/**
+ * Number of items per page.
+ * @minimum 1
+ * @maximum 200
+ */
+pageSize?: PageSizeParameter;
+};
+
+export type ListCreatorAuthorizationsStatus = typeof ListCreatorAuthorizationsStatus[keyof typeof ListCreatorAuthorizationsStatus];
+
+
+export const ListCreatorAuthorizationsStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
 
 /**
  * Creates a new user account and returns JWT tokens. Email must be unique.
@@ -6496,6 +6549,130 @@ export const rejectIssueAuthorization = async (authRequestId: string, options?: 
 
 
 /**
+ * Returns all authorization requests for collections created by this org, for the creator to review and manage.
+ * @summary List all issue authorization requests for collections owned by this org
+ */
+export type listCreatorAuthorizationsResponse200 = {
+  data: PagedIssueAuthorizationRequests
+  status: 200
+}
+
+export type listCreatorAuthorizationsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type listCreatorAuthorizationsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+    
+export type listCreatorAuthorizationsResponseSuccess = (listCreatorAuthorizationsResponse200) & {
+  headers: Headers;
+};
+export type listCreatorAuthorizationsResponseError = (listCreatorAuthorizationsResponse401 | listCreatorAuthorizationsResponse403) & {
+  headers: Headers;
+};
+
+export type listCreatorAuthorizationsResponse = (listCreatorAuthorizationsResponseSuccess | listCreatorAuthorizationsResponseError)
+
+export const getListCreatorAuthorizationsUrl = (orgId: string,
+    params?: ListCreatorAuthorizationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/orgs/${orgId}/creator/authorizations?${stringifiedParams}` : `/orgs/${orgId}/creator/authorizations`
+}
+
+export const listCreatorAuthorizations = async (orgId: string,
+    params?: ListCreatorAuthorizationsParams, options?: RequestInit): Promise<listCreatorAuthorizationsResponse> => {
+  
+  const res = await fetch(getListCreatorAuthorizationsUrl(orgId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: listCreatorAuthorizationsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listCreatorAuthorizationsResponse
+}
+
+
+
+/**
+ * Returns a single authorization request with embedded requesting org and collection info.
+ * @summary Get a single authorization request with full detail
+ */
+export type getIssueAuthorizationResponse200 = {
+  data: IssueAuthorizationRequestDetail
+  status: 200
+}
+
+export type getIssueAuthorizationResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getIssueAuthorizationResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+
+export type getIssueAuthorizationResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getIssueAuthorizationResponseSuccess = (getIssueAuthorizationResponse200) & {
+  headers: Headers;
+};
+export type getIssueAuthorizationResponseError = (getIssueAuthorizationResponse401 | getIssueAuthorizationResponse403 | getIssueAuthorizationResponse404) & {
+  headers: Headers;
+};
+
+export type getIssueAuthorizationResponse = (getIssueAuthorizationResponseSuccess | getIssueAuthorizationResponseError)
+
+export const getGetIssueAuthorizationUrl = (authRequestId: string,) => {
+
+
+  
+
+  return `/issue-authorizations/${authRequestId}`
+}
+
+export const getIssueAuthorization = async (authRequestId: string, options?: RequestInit): Promise<getIssueAuthorizationResponse> => {
+  
+  const res = await fetch(getGetIssueAuthorizationUrl(authRequestId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getIssueAuthorizationResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getIssueAuthorizationResponse
+}
+
+
+
+/**
  * Returns the publicly verifiable assertion data for an issued badge. No authentication required.
  * @summary Public verification payload for an issued badge (Assertion)
  */
@@ -6650,25 +6827,29 @@ export const getGetBadgeResponseMock = (overrideResponse: Partial< Badge > = {})
 
 export const getUpdateBadgeResponseMock = (overrideResponse: Partial< Badge > = {}): Badge => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), criteria: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])})), undefined]), createdByOrgId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
-export const getListCollectionsResponseMock = (overrideResponse: Partial< PagedCollections > = {}): PagedCollections => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
+export const getListCollectionsResponseMock = (overrideResponse: Partial< PagedCollections > = {}): PagedCollections => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), status: faker.helpers.arrayElement([faker.helpers.arrayElement(['draft','in_review','changes_requested','approved','published','archived'] as const), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
 
-export const getCreateCollectionResponseMock = (overrideResponse: Partial< Collection > = {}): Collection => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
+export const getCreateCollectionResponseMock = (overrideResponse: Partial< Collection > = {}): Collection => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), status: faker.helpers.arrayElement([faker.helpers.arrayElement(['draft','in_review','changes_requested','approved','published','archived'] as const), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
-export const getGetCollectionResponseMock = (): CollectionDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeSummaries: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])})), undefined]), stats: faker.helpers.arrayElement([{totalIssuances: faker.number.int({min: undefined, max: undefined}), uniqueLearners: faker.number.int({min: undefined, max: undefined}), badgeCount: faker.number.int({min: undefined, max: undefined}), averageCompletionRate: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined])}, undefined])},})
+export const getGetCollectionResponseMock = (): CollectionDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), status: faker.helpers.arrayElement([faker.helpers.arrayElement(['draft','in_review','changes_requested','approved','published','archived'] as const), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeSummaries: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])})), undefined]), stats: faker.helpers.arrayElement([{totalIssuances: faker.number.int({min: undefined, max: undefined}), uniqueLearners: faker.number.int({min: undefined, max: undefined}), badgeCount: faker.number.int({min: undefined, max: undefined}), averageCompletionRate: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined])}, undefined])},})
 
-export const getUpdateCollectionResponseMock = (): CollectionDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeSummaries: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])})), undefined]), stats: faker.helpers.arrayElement([{totalIssuances: faker.number.int({min: undefined, max: undefined}), uniqueLearners: faker.number.int({min: undefined, max: undefined}), badgeCount: faker.number.int({min: undefined, max: undefined}), averageCompletionRate: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined])}, undefined])},})
+export const getUpdateCollectionResponseMock = (): CollectionDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), status: faker.helpers.arrayElement([faker.helpers.arrayElement(['draft','in_review','changes_requested','approved','published','archived'] as const), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeSummaries: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])})), undefined]), stats: faker.helpers.arrayElement([{totalIssuances: faker.number.int({min: undefined, max: undefined}), uniqueLearners: faker.number.int({min: undefined, max: undefined}), badgeCount: faker.number.int({min: undefined, max: undefined}), averageCompletionRate: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined])}, undefined])},})
 
-export const getBrowseRegistryResponseMock = (overrideResponse: Partial< PagedCollections > = {}): PagedCollections => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
+export const getBrowseRegistryResponseMock = (overrideResponse: Partial< PagedCollections > = {}): PagedCollections => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), status: faker.helpers.arrayElement([faker.helpers.arrayElement(['draft','in_review','changes_requested','approved','published','archived'] as const), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
 
-export const getPublishCollectionResponseMock = (): CollectionDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeSummaries: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])})), undefined]), stats: faker.helpers.arrayElement([{totalIssuances: faker.number.int({min: undefined, max: undefined}), uniqueLearners: faker.number.int({min: undefined, max: undefined}), badgeCount: faker.number.int({min: undefined, max: undefined}), averageCompletionRate: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined])}, undefined])},})
+export const getPublishCollectionResponseMock = (): CollectionDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), status: faker.helpers.arrayElement([faker.helpers.arrayElement(['draft','in_review','changes_requested','approved','published','archived'] as const), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeSummaries: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])})), undefined]), stats: faker.helpers.arrayElement([{totalIssuances: faker.number.int({min: undefined, max: undefined}), uniqueLearners: faker.number.int({min: undefined, max: undefined}), badgeCount: faker.number.int({min: undefined, max: undefined}), averageCompletionRate: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined])}, undefined])},})
 
-export const getUnpublishCollectionResponseMock = (): CollectionDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeSummaries: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])})), undefined]), stats: faker.helpers.arrayElement([{totalIssuances: faker.number.int({min: undefined, max: undefined}), uniqueLearners: faker.number.int({min: undefined, max: undefined}), badgeCount: faker.number.int({min: undefined, max: undefined}), averageCompletionRate: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined])}, undefined])},})
+export const getUnpublishCollectionResponseMock = (): CollectionDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), status: faker.helpers.arrayElement([faker.helpers.arrayElement(['draft','in_review','changes_requested','approved','published','archived'] as const), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeSummaries: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])})), undefined]), stats: faker.helpers.arrayElement([{totalIssuances: faker.number.int({min: undefined, max: undefined}), uniqueLearners: faker.number.int({min: undefined, max: undefined}), badgeCount: faker.number.int({min: undefined, max: undefined}), averageCompletionRate: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined])}, undefined])},})
 
 export const getRequestIssueAuthorizationResponseMock = (overrideResponse: Partial< IssueAuthorizationRequest > = {}): IssueAuthorizationRequest => ({id: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), requestingOrgId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','approved','rejected'] as const), message: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
 export const getListIssueAuthorizationsResponseMock = (overrideResponse: Partial< PagedIssueAuthorizationRequests > = {}): PagedIssueAuthorizationRequests => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), requestingOrgId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','approved','rejected'] as const), message: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
 
 export const getApproveIssueAuthorizationResponseMock = (overrideResponse: Partial< IssueAuthorization > = {}): IssueAuthorization => ({id: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), grantedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
+
+export const getListCreatorAuthorizationsResponseMock = (overrideResponse: Partial< PagedIssueAuthorizationRequests > = {}): PagedIssueAuthorizationRequests => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), requestingOrgId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','approved','rejected'] as const), message: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
+
+export const getGetIssueAuthorizationResponseMock = (): IssueAuthorizationRequestDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), requestingOrgId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','approved','rejected'] as const), message: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{requestingOrg: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, undefined]), collection: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}, undefined]), decisionNote: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), decidedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},})
 
 export const getGetPublicAssertionResponseMock = (overrideResponse: Partial< Assertion > = {}): Assertion => ({id: faker.string.alpha({length: {min: 10, max: 20}}), issuerOrgId: faker.string.alpha({length: {min: 10, max: 20}}), recipientLearnerId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), issuedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', evidenceUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), ...overrideResponse})
 
@@ -7539,6 +7720,30 @@ export const getRejectIssueAuthorizationMockHandler = (overrideResponse?: void |
   }, options)
 }
 
+export const getListCreatorAuthorizationsMockHandler = (overrideResponse?: PagedIssueAuthorizationRequests | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PagedIssueAuthorizationRequests> | PagedIssueAuthorizationRequests), options?: RequestHandlerOptions) => {
+  return http.get('*/orgs/:orgId/creator/authorizations', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListCreatorAuthorizationsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getGetIssueAuthorizationMockHandler = (overrideResponse?: IssueAuthorizationRequestDetail | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<IssueAuthorizationRequestDetail> | IssueAuthorizationRequestDetail), options?: RequestHandlerOptions) => {
+  return http.get('*/issue-authorizations/:authRequestId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetIssueAuthorizationResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
 export const getGetPublicAssertionMockHandler = (overrideResponse?: Assertion | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Assertion> | Assertion), options?: RequestHandlerOptions) => {
   return http.get('*/public/assertions/:assertionId', async (info) => {
   
@@ -7625,5 +7830,7 @@ export const getBadgingAppAPIV0Mock = () => [
   getListIssueAuthorizationsMockHandler(),
   getApproveIssueAuthorizationMockHandler(),
   getRejectIssueAuthorizationMockHandler(),
+  getListCreatorAuthorizationsMockHandler(),
+  getGetIssueAuthorizationMockHandler(),
   getGetPublicAssertionMockHandler()
 ]

@@ -14,6 +14,8 @@ export interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (name: string, email: string, password: string) => Promise<string | null>;
   signOut: () => void;
+  /** Directly inject a user + token (used by the demo persona switcher). */
+  switchUser: (user: User, token: string) => void;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -78,6 +80,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
   }, []);
 
+  const switchUser = React.useCallback((newUser: User, token: string) => {
+    setUser(newUser);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  }, []);
+
   const value = React.useMemo(
     () => ({
       user,
@@ -86,8 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       signOut,
+      switchUser,
     }),
-    [user, isAuthLoading, signIn, signUp, signOut],
+    [user, isAuthLoading, signIn, signUp, signOut, switchUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

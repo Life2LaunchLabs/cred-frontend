@@ -7,7 +7,8 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import SvgIcon from '@mui/material/SvgIcon';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import SelectContent from './SelectContent';
+// import SelectContent from './SelectContent'; // Restore post-demo
+import UserSelectContent from './UserSelectContent';
 import MenuContent from './MenuContent';
 import ContextualSidebarTree from './ContextualSidebarTree';
 import OptionsMenu from './OptionsMenu';
@@ -84,7 +85,7 @@ export default function SideMenu() {
           p: 1.5,
         }}
       >
-        <SelectContent />
+        <UserSelectContent />
       </Box>
       <Divider />
       <Box
