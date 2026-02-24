@@ -10,6 +10,7 @@ import Typography from '@mui/material/Typography';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined';
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
@@ -92,11 +93,11 @@ export default function CreatorCollectionDetail() {
       return (
         <Button
           variant="contained"
-          startIcon={<EditRoundedIcon />}
-          onClick={() => navigate(orgPath(`/creator/collections/${collectionId}/edit`))}
+          startIcon={<SendRoundedIcon />}
+          onClick={() => navigate(orgPath(`/creator/collections/${collectionId}/submission`))}
           sx={{ textTransform: 'none' }}
         >
-          Edit Collection
+          Submit for Review
         </Button>
       );
     }
@@ -106,7 +107,7 @@ export default function CreatorCollectionDetail() {
           variant="contained"
           color="warning"
           startIcon={<EditRoundedIcon />}
-          onClick={() => navigate(orgPath(`/creator/collections/${collectionId}/submit`))}
+          onClick={() => navigate(orgPath(`/creator/collections/${collectionId}/submission`))}
           sx={{ textTransform: 'none' }}
         >
           Address Feedback

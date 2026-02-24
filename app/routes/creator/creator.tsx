@@ -100,6 +100,10 @@ export default function CreatorStudio() {
 
     async function fetchCollections() {
       setIsLoadingCollections(true);
+      if (!sessionStorage.getItem('collections_added')) {
+        if (!cancelled) { setCollections([]); setIsLoadingCollections(false); }
+        return;
+      }
       const res = await listCollections({ orgId: activeOrg!.org.id });
       if (!cancelled && res.status === 200) {
         setCollections(res.data.data);

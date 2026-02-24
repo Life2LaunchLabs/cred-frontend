@@ -43,7 +43,7 @@ export default function CollectionSubmission() {
         }}
       >
         <Typography variant="body1" color="text.secondary">
-          Submission workflow coming soon
+          Your submission has been accepted! We'll let you know once the board completes their review.
         </Typography>
       </Paper>
     </Box>

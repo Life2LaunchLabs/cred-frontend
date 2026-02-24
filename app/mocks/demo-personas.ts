@@ -17,6 +17,7 @@ export const DEMO_ORGS: Record<string, Org> = {
     contactEmail: 'contact@realcredentials.com',
     website: 'https://realcredentials.com',
     location: 'Chicago, IL',
+    features: ['creator'],
     createdAt: '2024-01-20T09:00:00Z',
   },
   org_wru: {
@@ -28,6 +29,7 @@ export const DEMO_ORGS: Record<string, Org> = {
     contactEmail: 'admin@weldzrus.com',
     website: 'https://weldzrus.com',
     location: 'Detroit, MI',
+    features: ['issuer'],
     createdAt: '2023-06-15T08:00:00Z',
   },
 };

@@ -3,6 +3,10 @@ import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
@@ -11,7 +15,9 @@ import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { useNavigate } from 'react-router';
 import { listCollections } from '~/api/generated';
@@ -73,6 +79,8 @@ function formatDate(iso?: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+const COLLECTIONS_ADDED_KEY = 'collections_added';
+
 export default function CreatorCollections() {
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
@@ -81,6 +89,10 @@ export default function CreatorCollections() {
   const [collections, setCollections] = React.useState<Collection[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState<CollectionStatus | 'all'>('all');
+  const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const [collectionsAdded, setCollectionsAdded] = React.useState(
+    () => Boolean(sessionStorage.getItem(COLLECTIONS_ADDED_KEY))
+  );
 
   React.useEffect(() => {
     if (!activeOrg) return;
@@ -88,6 +100,10 @@ export default function CreatorCollections() {
 
     async function fetchCollections() {
       setIsLoading(true);
+      if (!collectionsAdded) {
+        if (!cancelled) { setCollections([]); setIsLoading(false); }
+        return;
+      }
       const res = await listCollections({ orgId: activeOrg!.org.id });
       if (!cancelled && res.status === 200) {
         setCollections(res.data.data);
@@ -97,7 +113,13 @@ export default function CreatorCollections() {
 
     fetchCollections();
     return () => { cancelled = true; };
-  }, [activeOrg]);
+  }, [activeOrg, collectionsAdded]);
+
+  function flagAndLoad() {
+    sessionStorage.setItem(COLLECTIONS_ADDED_KEY, '1');
+    setMenuAnchor(null);
+    setCollectionsAdded(true);
+  }
 
   const filteredCollections =
     activeTab === 'all'
@@ -118,12 +140,29 @@ export default function CreatorCollections() {
         </Typography>
         <Button
           variant="contained"
-          startIcon={<AddRoundedIcon />}
-          onClick={() => navigate(orgPath('/creator/collections/new'))}
+          endIcon={<ArrowDropDownRoundedIcon />}
+          onClick={(e) => setMenuAnchor(e.currentTarget)}
           sx={{ textTransform: 'none' }}
         >
           New Collection
         </Button>
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={() => setMenuAnchor(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem onClick={flagAndLoad}>
+            <ListItemIcon><AddRoundedIcon fontSize="small" /></ListItemIcon>
+            Create collection
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={flagAndLoad}>
+            <ListItemIcon><UploadFileRoundedIcon fontSize="small" /></ListItemIcon>
+            Upload from CSV
+          </MenuItem>
+        </Menu>
       </Stack>
 
       {/* Tab bar */}
