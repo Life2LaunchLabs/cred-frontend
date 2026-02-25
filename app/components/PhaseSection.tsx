@@ -3,12 +3,16 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import Avatar from '@mui/material/Avatar';
 import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
+import Stack from '@mui/material/Stack';
 import type { Phase } from '~/api/generated';
 import { CheckpointItem } from './CheckpointItem';
+
+function getInitials(name: string) {
+  return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+}
 
 interface PhaseSectionProps {
   phase: Phase;
@@ -39,26 +43,30 @@ export function PhaseSection({ phase, onBadgeClick, onCheckpointClick }: PhaseSe
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
             Badges ({phase.badges.length})
           </Typography>
-          <List dense disablePadding>
+          <Stack gap={1}>
             {phase.badges.map((badge) => (
-              <ListItem
+              <Paper
                 key={badge.id}
-                disableGutters
-                sx={{
-                  cursor: onBadgeClick ? 'pointer' : 'default',
-                  '&:hover': onBadgeClick ? { bgcolor: 'action.hover' } : undefined,
-                  borderRadius: 1,
-                  px: 1,
-                }}
+                variant="outlined"
                 onClick={() => onBadgeClick?.(badge.id, badge.collectionId)}
+                sx={{
+                  p: 1.5,
+                  display: 'flex',
+                  gap: 1.5,
+                  alignItems: 'center',
+                  cursor: onBadgeClick ? 'pointer' : 'default',
+                  '&:hover': onBadgeClick ? { borderColor: 'primary.main' } : undefined,
+                }}
               >
-                <ListItemText
-                  primary={badge.name}
-                  primaryTypographyProps={{ variant: 'body2' }}
-                />
-              </ListItem>
+                <Avatar variant="rounded" src={badge.imageUrl} sx={{ width: 36, height: 36, borderRadius: 1 }}>
+                  {getInitials(badge.name)}
+                </Avatar>
+                <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {badge.name}
+                </Typography>
+              </Paper>
             ))}
-          </List>
+          </Stack>
         </Box>
       )}
 
