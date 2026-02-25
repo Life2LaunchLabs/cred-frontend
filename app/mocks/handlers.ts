@@ -1,14 +1,17 @@
 import { http, HttpResponse, passthrough } from "msw";
 import type {
   AuthResponse,
+  Cohort,
   CohortDetail,
   CollectionDetail,
   LoginRequest,
   OrgLearnerDetail,
+  OrgMemberDetail,
   OrgCollectionRelDetail,
   OrgBadgeRelDetail,
   Program,
   ProgramDetail,
+  CohortProgramAssignment,
   CohortProgramAssignmentDetail,
   LearnerProgramAssignmentDetail,
   ProgramProgress,
@@ -62,6 +65,42 @@ import {
 // Merged org lookups include both spec orgs and demo orgs
 const ALL_ORG_DETAILS = { ...FAKE_ORG_DETAILS, ...DEMO_ORGS };
 const ALL_ORG_STATS = { ...FAKE_ORG_STATS, ...DEMO_ORG_STATS };
+
+// Demo org members (staff for Weldz-R-Us)
+const DEMO_ORG_MEMBERS_DATA: Record<string, OrgMemberDetail[]> = {
+  org_wru: [
+    {
+      id: 'mem_demo_2',
+      orgId: 'org_wru',
+      userId: 'usr_demo_admin',
+      role: 'admin',
+      status: 'active',
+      user: {
+        id: 'usr_demo_admin',
+        email: 'admin@weldzrus.com',
+        name: 'Jordan Taylor',
+        title: 'Training & Certification Manager',
+        profileImageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=256&h=256&fit=crop&crop=face',
+        createdAt: '2023-07-01T08:00:00Z',
+      },
+    },
+    {
+      id: 'mem_demo_3',
+      orgId: 'org_wru',
+      userId: 'usr_demo_staff',
+      role: 'issuer',
+      status: 'active',
+      user: {
+        id: 'usr_demo_staff',
+        email: 'staff@weldzrus.com',
+        name: 'Sam Rivera',
+        title: 'Badge Coordinator',
+        profileImageUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=256&h=256&fit=crop&crop=face',
+        createdAt: '2023-11-10T09:00:00Z',
+      },
+    },
+  ],
+};
 
 // Merged collection + badge lookups include creator data
 const ALL_COLLECTIONS = [...FAKE_COLLECTIONS, ...CREATOR_COLLECTIONS];
@@ -138,7 +177,8 @@ export const handlers = [
   }),
 
   http.get("*/orgs/:orgId/members", ({ params }) => {
-    const members = FAKE_ORG_MEMBERS[params.orgId as string] ?? [];
+    const orgId = params.orgId as string;
+    const members = FAKE_ORG_MEMBERS[orgId] ?? DEMO_ORG_MEMBERS_DATA[orgId] ?? [];
     return HttpResponse.json(
       {
         meta: { page: 1, pageSize: 25, totalCount: members.length, totalPages: 1 },
@@ -629,6 +669,100 @@ export const handlers = [
       },
       { status: 200 },
     );
+  }),
+
+  // List org learners
+  http.get("*/orgs/:orgId/learners", ({ params, request }) => {
+    const orgId = params.orgId as string;
+    const url = new URL(request.url);
+    const q = url.searchParams.get("q")?.toLowerCase();
+
+    let results = FAKE_LEARNERS;
+    if (q) results = results.filter((l) => l.name?.toLowerCase().includes(q) || l.email?.toLowerCase().includes(q));
+
+    const data = results.map((l) => ({
+      id: `ol_${l.id}`,
+      orgId,
+      learnerId: l.id,
+      status: "active" as const,
+      createdAt: l.createdAt,
+      learner: l,
+    }));
+
+    return HttpResponse.json(
+      { meta: { page: 1, pageSize: 25, totalCount: data.length, totalPages: 1 }, data },
+      { status: 200 }
+    );
+  }),
+
+  // Demo: add a sample cohort + learners + program assignment to the org
+  http.post("*/orgs/:orgId/cohorts/demo", ({ params }) => {
+    const orgId = params.orgId as string;
+    const id = "coh_demo_1";
+
+    const existing = FAKE_COHORTS.find((c) => c.id === id);
+    if (existing) {
+      return HttpResponse.json(existing, { status: 200 });
+    }
+
+    const cohort: Cohort = {
+      id,
+      orgId,
+      name: "Spring 2026 New Hires",
+      slug: "spring-2026-new-hires",
+      description:
+        "Onboarding cohort for welding department new hires starting Spring 2026.",
+      status: "active",
+      learnerCount: 4,
+      assignedStaffIds: orgId === "org_wru" ? ["mem_demo_3"] : ["mem_5"],
+      createdAt: "2026-01-15T08:00:00Z",
+    };
+
+    FAKE_COHORTS.push(cohort);
+    FAKE_COHORT_LEARNERS[id] = FAKE_LEARNERS.slice(0, 4);
+
+    // Attach the first available program for this org (or any program)
+    const firstProgram =
+      Object.values(FAKE_PROGRAMS).find((p) => p.orgId === orgId) ??
+      Object.values(FAKE_PROGRAMS)[0];
+    if (firstProgram) {
+      FAKE_COHORT_PROGRAM_ASSIGNMENTS[id] = [
+        {
+          id: "cpa_demo_1",
+          cohortId: id,
+          programId: firstProgram.id,
+          assignedBy: "mem_1",
+          assignedAt: "2026-01-15T08:00:00Z",
+        } satisfies CohortProgramAssignment,
+      ];
+    }
+
+    return HttpResponse.json(cohort, { status: 201 });
+  }),
+
+  // Stub: create cohort
+  http.post("*/orgs/:orgId/cohorts", async ({ params, request }) => {
+    const body = (await request.json()) as { name: string; description?: string; status?: string };
+    const slug = body.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    return HttpResponse.json(
+      {
+        id: `coh_${Math.random().toString(36).slice(2, 8)}`,
+        orgId: params.orgId,
+        name: body.name,
+        slug,
+        status: (body.status ?? "draft") as "draft" | "active",
+        description: body.description,
+        learnerCount: 0,
+        assignedStaffIds: [],
+        createdAt: new Date().toISOString(),
+      },
+      { status: 201 }
+    );
+  }),
+
+  // Stub: send learner invites
+  http.post("*/orgs/:orgId/invites", async () => {
+    return HttpResponse.json({ message: "Invites sent" }, { status: 201 });
   }),
 
   http.get("*/orgs/:orgId/learners/:learnerId", ({ params }) => {

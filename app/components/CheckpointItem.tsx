@@ -41,6 +41,7 @@ export function CheckpointItem({ checkpoint, onClick }: CheckpointItemProps) {
             />
           )
         }
+        secondaryTypographyProps={{ component: 'span' }}
       />
     </ListItem>
   );

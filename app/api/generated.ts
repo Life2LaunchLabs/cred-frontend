@@ -162,14 +162,6 @@ export interface PagedUsers {
   data: User[];
 }
 
-export type OrgFeaturesItem = typeof OrgFeaturesItem[keyof typeof OrgFeaturesItem];
-
-
-export const OrgFeaturesItem = {
-  creator: 'creator',
-  issuer: 'issuer',
-} as const;
-
 /**
  * An organization that manages staff, learners, and badge issuance.
  */
@@ -204,9 +196,6 @@ export interface Org {
    */
   location?: string;
   socialLinks?: SocialLinks;
-  /** List of platform features enabled for this org. `creator` — org can design and publish badge collections. `issuer` — org can issue badges to learners.
- */
-  features?: OrgFeaturesItem[];
   createdAt?: ISODateTime;
   updatedAt?: ISODateTime;
 }
@@ -1419,7 +1408,7 @@ export interface PagedLearnerProgramAssignments {
 }
 
 /**
- * Lightweight badge summary for embedded display in library responses.
+ * Lightweight badge representation used in library list responses.
  */
 export interface BadgeSummaryItem {
   id: string;
@@ -1429,9 +1418,6 @@ export interface BadgeSummaryItem {
   issuanceCount?: number;
 }
 
-/**
- * Org-scoped status of the relationship.
- */
 export type OrgCollectionRelStatus = typeof OrgCollectionRelStatus[keyof typeof OrgCollectionRelStatus];
 
 
@@ -1443,7 +1429,7 @@ export const OrgCollectionRelStatus = {
 } as const;
 
 /**
- * Whether the org owns this collection or was authorized to use it.
+ * Whether the org created this collection or was authorized to use it.
  */
 export type OrgCollectionRelSource = typeof OrgCollectionRelSource[keyof typeof OrgCollectionRelSource];
 
@@ -1454,35 +1440,27 @@ export const OrgCollectionRelSource = {
 } as const;
 
 /**
- * Org-scoped relationship to a credential collection. Covers both self-owned collections (source: owned) and externally-authorized ones (source: authorized).
-
+ * An organization's relationship to a credential collection — either owned or authorized.
  */
 export interface OrgCollectionRel {
-  /** Unique relationship identifier. */
   id: string;
-  /** The org this relationship belongs to. */
   orgId: string;
-  /** The underlying collection. */
   collectionId: string;
-  /** Org-scoped status of the relationship. */
   status: OrgCollectionRelStatus;
-  /** Whether the org owns this collection or was authorized to use it. */
+  /** Whether the org created this collection or was authorized to use it. */
   source: OrgCollectionRelSource;
-  /** Number of active programs referencing badges from this collection. */
-  programCount?: number;
-  /** ID of the originating IssueAuthorizationRequest (if source is authorized). */
+  /** Number of programs in this org that reference this collection. */
+  programCount: number;
+  /** The issue authorization request that granted access (authorized source only). */
   authRequestId?: string;
-  /** Admin-internal notes about this relationship. */
+  /** Internal admin notes. */
   notes?: string;
+  collection: Collection;
   requestedAt?: ISODateTime;
   approvedAt?: ISODateTime;
   statusChangedAt?: ISODateTime;
-  collection: Collection;
 }
 
-/**
- * Org-scoped status. Inherits from parent collection rel.
- */
 export type OrgBadgeRelStatus = typeof OrgBadgeRelStatus[keyof typeof OrgBadgeRelStatus];
 
 
@@ -1493,30 +1471,23 @@ export const OrgBadgeRelStatus = {
 } as const;
 
 /**
- * Org-scoped relationship to a specific badge within a collection relationship.
+ * An organization's relationship to a single badge within its library.
  */
 export interface OrgBadgeRel {
-  /** Unique badge relationship identifier. */
   id: string;
   orgId: string;
   badgeId: string;
-  /** The parent collection relationship. */
   collectionRelId: string;
-  /** Org-scoped status. Inherits from parent collection rel. */
   status: OrgBadgeRelStatus;
   /** Number of programs referencing this badge. */
-  programCount?: number;
+  programCount: number;
   badge: BadgeSummaryItem;
 }
 
 export type OrgCollectionRelDetail = OrgCollectionRel & {
-  /** Badge relationships derived from this collection. */
-  badgeRels?: OrgBadgeRel[];
+  badgeRels: OrgBadgeRel[];
 };
 
-/**
- * New status (admin can archive or re-activate).
- */
 export type OrgCollectionRelUpdateRequestStatus = typeof OrgCollectionRelUpdateRequestStatus[keyof typeof OrgCollectionRelUpdateRequestStatus];
 
 
@@ -1525,16 +1496,8 @@ export const OrgCollectionRelUpdateRequestStatus = {
   archived: 'archived',
 } as const;
 
-/**
- * Partial update for an org collection relationship.
- */
 export interface OrgCollectionRelUpdateRequest {
-  /** New status (admin can archive or re-activate). */
   status?: OrgCollectionRelUpdateRequestStatus;
-  /**
-   * Admin-internal notes.
-   * @maxLength 2000
-   */
   notes?: string;
 }
 
@@ -1543,37 +1506,16 @@ export interface PagedOrgCollectionRels {
   data: OrgCollectionRel[];
 }
 
-export type OrgBadgeRelDetailStatus = typeof OrgBadgeRelDetailStatus[keyof typeof OrgBadgeRelDetailStatus];
-
-
-export const OrgBadgeRelDetailStatus = {
-  pending: 'pending',
-  active: 'active',
-  archived: 'archived',
-} as const;
-
-/**
- * Extended badge relationship with full badge (incl. criteria) and parent collection rel.
- */
-export interface OrgBadgeRelDetail {
-  id: string;
-  orgId: string;
-  badgeId: string;
-  collectionRelId: string;
-  status: OrgBadgeRelDetailStatus;
-  programCount?: number;
+export type OrgBadgeRelDetail = OrgBadgeRel & {
   badge: Badge;
   collectionRel: OrgCollectionRel;
-}
+};
 
 export interface PagedOrgBadgeRels {
   meta: PagedMeta;
   data: OrgBadgeRel[];
 }
 
-/**
- * Step-by-step counts through the credential authorization and activation flow.
- */
 export type CredLibraryAnalyticsAdoptionFunnel = {
   viewedInCatalog: number;
   requested: number;
@@ -1589,17 +1531,15 @@ export type CredLibraryAnalyticsTopCollectionsItem = {
 };
 
 /**
- * Org-level credential library adoption and usage analytics.
+ * Library-level adoption analytics for an organization.
  */
 export interface CredLibraryAnalytics {
-  /** Step-by-step counts through the credential authorization and activation flow. */
   adoptionFunnel: CredLibraryAnalyticsAdoptionFunnel;
-  /** Active library items not referenced by any program ("shelfware"). */
+  /** Active library items not yet referenced in any program. */
   unusedActiveCount: number;
-  /** Average days from request to approval across all authorized collections. */
-  avgTimeToApprovalDays?: number;
-  /** Most-used collections in active programs. */
-  topCollections?: CredLibraryAnalyticsTopCollectionsItem[];
+  /** Average days from authorization request to approval. */
+  avgTimeToApprovalDays: number;
+  topCollections: CredLibraryAnalyticsTopCollectionsItem[];
 }
 
 export type CredCollectionAnalyticsProgramsItem = {
@@ -1615,15 +1555,14 @@ export type CredCollectionAnalyticsBadgeAdoptionItem = {
 };
 
 /**
- * Analytics for a specific org collection relationship.
+ * Analytics for a specific collection relationship.
  */
 export interface CredCollectionAnalytics {
   collectionRelId: string;
   collection: Collection;
   programCount: number;
-  programs?: CredCollectionAnalyticsProgramsItem[];
-  /** Per-badge program coverage. */
-  badgeAdoption?: CredCollectionAnalyticsBadgeAdoptionItem[];
+  programs: CredCollectionAnalyticsProgramsItem[];
+  badgeAdoption: CredCollectionAnalyticsBadgeAdoptionItem[];
 }
 
 export type CredBadgeAnalyticsProgramsItem = {
@@ -1633,13 +1572,13 @@ export type CredBadgeAnalyticsProgramsItem = {
 };
 
 /**
- * Analytics for a specific org badge relationship.
+ * Analytics for a specific badge relationship.
  */
 export interface CredBadgeAnalytics {
   badgeRelId: string;
   badge: Badge;
   programCount: number;
-  programs?: CredBadgeAnalyticsProgramsItem[];
+  programs: CredBadgeAnalyticsProgramsItem[];
 }
 
 /**
@@ -2004,9 +1943,6 @@ pageSize?: PageSizeParameter;
 };
 
 export type ListOrgCollectionRelsParams = {
-/**
- * Filter by relationship status.
- */
 status?: ListOrgCollectionRelsStatus;
 /**
  * Keyword search.
@@ -2036,13 +1972,7 @@ export const ListOrgCollectionRelsStatus = {
 } as const;
 
 export type ListOrgBadgeRelsParams = {
-/**
- * Filter by relationship status.
- */
 status?: ListOrgBadgeRelsStatus;
-/**
- * Filter to badges from a specific collection relationship.
- */
 collectionRelId?: string;
 /**
  * Keyword search.
@@ -6848,8 +6778,7 @@ export const getPublicAssertion = async (assertionId: string, options?: RequestI
 
 
 /**
- * Returns the org's credential library — collections the org owns or is authorized to use, with their status.
- * @summary List org's collection relationships (library)
+ * @summary List an org's credential library (collection relationships)
  */
 export type listOrgCollectionRelsResponse200 = {
   data: PagedOrgCollectionRels
@@ -6912,8 +6841,7 @@ export const listOrgCollectionRels = async (orgId: string,
 
 
 /**
- * Returns the org's collection relationship including embedded badge rels.
- * @summary Get collection relationship detail
+ * @summary Get a single collection relationship with badge roster
  */
 export type getOrgCollectionRelResponse200 = {
   data: OrgCollectionRelDetail
@@ -6974,17 +6902,11 @@ export const getOrgCollectionRel = async (orgId: string,
 
 
 /**
- * Admin updates org-scoped status or internal notes for a collection relationship.
- * @summary Update collection relationship (archive/unarchive, notes)
+ * @summary Update a collection relationship (admin only)
  */
 export type updateOrgCollectionRelResponse200 = {
   data: OrgCollectionRel
   status: 200
-}
-
-export type updateOrgCollectionRelResponse400 = {
-  data: BadRequestResponse
-  status: 400
 }
 
 export type updateOrgCollectionRelResponse401 = {
@@ -7005,7 +6927,7 @@ export type updateOrgCollectionRelResponse404 = {
 export type updateOrgCollectionRelResponseSuccess = (updateOrgCollectionRelResponse200) & {
   headers: Headers;
 };
-export type updateOrgCollectionRelResponseError = (updateOrgCollectionRelResponse400 | updateOrgCollectionRelResponse401 | updateOrgCollectionRelResponse403 | updateOrgCollectionRelResponse404) & {
+export type updateOrgCollectionRelResponseError = (updateOrgCollectionRelResponse401 | updateOrgCollectionRelResponse403 | updateOrgCollectionRelResponse404) & {
   headers: Headers;
 };
 
@@ -7043,8 +6965,7 @@ export const updateOrgCollectionRel = async (orgId: string,
 
 
 /**
- * Returns the org's badge relationships, optionally filtered by status or parent collection rel.
- * @summary List org's badge relationships (library)
+ * @summary List an org's badge relationships across its library
  */
 export type listOrgBadgeRelsResponse200 = {
   data: PagedOrgBadgeRels
@@ -7107,8 +7028,7 @@ export const listOrgBadgeRels = async (orgId: string,
 
 
 /**
- * Returns the org's badge relationship including full badge criteria and parent collection rel.
- * @summary Get badge relationship detail
+ * @summary Get a single badge relationship with full badge detail
  */
 export type getOrgBadgeRelResponse200 = {
   data: OrgBadgeRelDetail
@@ -7169,8 +7089,7 @@ export const getOrgBadgeRel = async (orgId: string,
 
 
 /**
- * Returns adoption funnel, coverage, and operational metrics for the org's credential library.
- * @summary Get org credential library analytics
+ * @summary Library-level analytics summary for an org
  */
 export type getOrgLibraryAnalyticsResponse200 = {
   data: CredLibraryAnalytics
@@ -7224,8 +7143,7 @@ export const getOrgLibraryAnalytics = async (orgId: string, options?: RequestIni
 
 
 /**
- * Returns program coverage and adoption metrics for a specific collection in the library.
- * @summary Get collection relationship analytics
+ * @summary Analytics for a specific collection relationship
  */
 export type getOrgCollectionRelAnalyticsResponse200 = {
   data: CredCollectionAnalytics
@@ -7286,8 +7204,7 @@ export const getOrgCollectionRelAnalytics = async (orgId: string,
 
 
 /**
- * Returns program coverage metrics for a specific badge in the library.
- * @summary Get badge relationship analytics
+ * @summary Analytics for a specific badge relationship
  */
 export type getOrgBadgeRelAnalyticsResponse200 = {
   data: CredBadgeAnalytics
@@ -7352,13 +7269,13 @@ export const getLoginResponseMock = (overrideResponse: Partial< AuthResponse > =
 
 export const getRefreshTokenResponseMock = (overrideResponse: Partial< AuthResponse > = {}): AuthResponse => ({accessToken: faker.string.alpha({length: {min: 10, max: 20}}), refreshToken: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), user: {id: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.internet.email(), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), profileImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), bio: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 500}}), undefined]), title: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 120}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, ...overrideResponse})
 
-export const getCreateOrgResponseMock = (overrideResponse: Partial< Org > = {}): Org => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), features: faker.helpers.arrayElement([faker.helpers.arrayElements(['creator','issuer'] as const), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
+export const getCreateOrgResponseMock = (overrideResponse: Partial< Org > = {}): Org => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
-export const getListOrgsResponseMock = (overrideResponse: Partial< PagedOrgs > = {}): PagedOrgs => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), features: faker.helpers.arrayElement([faker.helpers.arrayElements(['creator','issuer'] as const), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
+export const getListOrgsResponseMock = (overrideResponse: Partial< PagedOrgs > = {}): PagedOrgs => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
 
-export const getGetOrgResponseMock = (overrideResponse: Partial< Org > = {}): Org => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), features: faker.helpers.arrayElement([faker.helpers.arrayElements(['creator','issuer'] as const), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
+export const getGetOrgResponseMock = (overrideResponse: Partial< Org > = {}): Org => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
-export const getUpdateOrgResponseMock = (overrideResponse: Partial< Org > = {}): Org => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), features: faker.helpers.arrayElement([faker.helpers.arrayElements(['creator','issuer'] as const), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
+export const getUpdateOrgResponseMock = (overrideResponse: Partial< Org > = {}): Org => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
 export const getGetOrgSettingsResponseMock = (overrideResponse: Partial< OrgSettings > = {}): OrgSettings => ({allowSelfJoin: faker.datatype.boolean(), requireAdminApprovalForJoin: faker.datatype.boolean(), defaultMemberRole: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), ...overrideResponse})
 
@@ -7434,7 +7351,7 @@ export const getGetUserSettingsResponseMock = (overrideResponse: Partial< UserSe
 
 export const getUpdateUserSettingsResponseMock = (overrideResponse: Partial< UserSettings > = {}): UserSettings => ({locale: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), marketingEmails: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), ...overrideResponse})
 
-export const getListUserOrgsResponseMock = (overrideResponse: Partial< ListUserOrgs200 > = {}): ListUserOrgs200 => ({data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({org: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), features: faker.helpers.arrayElement([faker.helpers.arrayElements(['creator','issuer'] as const), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, membership: {id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), userId: faker.string.alpha({length: {min: 10, max: 20}}), role: faker.helpers.arrayElement(['owner','admin','issuer','viewer'] as const), status: faker.helpers.arrayElement(['active','invited','suspended'] as const), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}})), ...overrideResponse})
+export const getListUserOrgsResponseMock = (overrideResponse: Partial< ListUserOrgs200 > = {}): ListUserOrgs200 => ({data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({org: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.helpers.fromRegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$'), about: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), contactEmail: faker.helpers.arrayElement([faker.internet.email(), undefined]), phone: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 30}}), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 200}}), undefined]), socialLinks: faker.helpers.arrayElement([{linkedin: faker.helpers.arrayElement([faker.internet.url(), undefined]), website: faker.helpers.arrayElement([faker.internet.url(), undefined]), x: faker.helpers.arrayElement([faker.internet.url(), undefined])}, undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, membership: {id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), userId: faker.string.alpha({length: {min: 10, max: 20}}), role: faker.helpers.arrayElement(['owner','admin','issuer','viewer'] as const), status: faker.helpers.arrayElement(['active','invited','suspended'] as const), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}})), ...overrideResponse})
 
 export const getListLearnersResponseMock = (overrideResponse: Partial< PagedLearners > = {}): PagedLearners => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), slug: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), profileImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), coverImageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), bio: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), title: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), location: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined])})), ...overrideResponse})
 
@@ -7474,21 +7391,21 @@ export const getApproveIssueAuthorizationResponseMock = (overrideResponse: Parti
 
 export const getGetPublicAssertionResponseMock = (overrideResponse: Partial< Assertion > = {}): Assertion => ({id: faker.string.alpha({length: {min: 10, max: 20}}), issuerOrgId: faker.string.alpha({length: {min: 10, max: 20}}), recipientLearnerId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), issuedAt: faker.date.past().toISOString().slice(0, 19) + 'Z', evidenceUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), ...overrideResponse})
 
-export const getListOrgCollectionRelsResponseMock = (overrideResponse: Partial< PagedOrgCollectionRels > = {}): PagedOrgCollectionRels => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}})), ...overrideResponse})
+export const getListOrgCollectionRelsResponseMock = (overrideResponse: Partial< PagedOrgCollectionRels > = {}): PagedOrgCollectionRels => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.number.int({min: undefined, max: undefined}), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])})), ...overrideResponse})
 
-export const getGetOrgCollectionRelResponseMock = (): OrgCollectionRelDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}},...{badgeRels: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}})), undefined])},})
+export const getGetOrgCollectionRelResponseMock = (): OrgCollectionRelDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.number.int({min: undefined, max: undefined}), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])},...{badgeRels: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.number.int({min: undefined, max: undefined}), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}}))},})
 
-export const getUpdateOrgCollectionRelResponseMock = (overrideResponse: Partial< OrgCollectionRel > = {}): OrgCollectionRel => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, ...overrideResponse})
+export const getUpdateOrgCollectionRelResponseMock = (overrideResponse: Partial< OrgCollectionRel > = {}): OrgCollectionRel => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.number.int({min: undefined, max: undefined}), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), ...overrideResponse})
 
-export const getListOrgBadgeRelsResponseMock = (overrideResponse: Partial< PagedOrgBadgeRels > = {}): PagedOrgBadgeRels => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}})), ...overrideResponse})
+export const getListOrgBadgeRelsResponseMock = (overrideResponse: Partial< PagedOrgBadgeRels > = {}): PagedOrgBadgeRels => ({meta: {page: faker.number.int({min: undefined, max: undefined}), pageSize: faker.number.int({min: undefined, max: undefined}), total: faker.number.int({min: undefined, max: undefined})}, data: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.number.int({min: undefined, max: undefined}), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}})), ...overrideResponse})
 
-export const getGetOrgBadgeRelResponseMock = (overrideResponse: Partial< OrgBadgeRelDetail > = {}): OrgBadgeRelDetail => ({id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), criteria: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])})), undefined]), createdByOrgId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, collectionRel: {id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}}, ...overrideResponse})
+export const getGetOrgBadgeRelResponseMock = (): OrgBadgeRelDetail => ({...{id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), badgeId: faker.string.alpha({length: {min: 10, max: 20}}), collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived'] as const), programCount: faker.number.int({min: undefined, max: undefined}), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), issuanceCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}},...{badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), criteria: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])})), undefined]), createdByOrgId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, collectionRel: {id: faker.string.alpha({length: {min: 10, max: 20}}), orgId: faker.string.alpha({length: {min: 10, max: 20}}), collectionId: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.arrayElement(['pending','active','archived','rejected'] as const), source: faker.helpers.arrayElement(['owned','authorized'] as const), programCount: faker.number.int({min: undefined, max: undefined}), authRequestId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), notes: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, requestedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), approvedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), statusChangedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}},})
 
-export const getGetOrgLibraryAnalyticsResponseMock = (overrideResponse: Partial< CredLibraryAnalytics > = {}): CredLibraryAnalytics => ({adoptionFunnel: {viewedInCatalog: faker.number.int({min: undefined, max: undefined}), requested: faker.number.int({min: undefined, max: undefined}), approved: faker.number.int({min: undefined, max: undefined}), activeInLibrary: faker.number.int({min: undefined, max: undefined}), referencedInPrograms: faker.number.int({min: undefined, max: undefined})}, unusedActiveCount: faker.number.int({min: undefined, max: undefined}), avgTimeToApprovalDays: faker.helpers.arrayElement([faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), undefined]), topCollections: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), collectionName: faker.string.alpha({length: {min: 10, max: 20}}), programCount: faker.number.int({min: undefined, max: undefined})})), undefined]), ...overrideResponse})
+export const getGetOrgLibraryAnalyticsResponseMock = (overrideResponse: Partial< CredLibraryAnalytics > = {}): CredLibraryAnalytics => ({adoptionFunnel: {viewedInCatalog: faker.number.int({min: undefined, max: undefined}), requested: faker.number.int({min: undefined, max: undefined}), approved: faker.number.int({min: undefined, max: undefined}), activeInLibrary: faker.number.int({min: undefined, max: undefined}), referencedInPrograms: faker.number.int({min: undefined, max: undefined})}, unusedActiveCount: faker.number.int({min: undefined, max: undefined}), avgTimeToApprovalDays: faker.number.float({min: undefined, max: undefined, fractionDigits: 2}), topCollections: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), collectionName: faker.string.alpha({length: {min: 10, max: 20}}), programCount: faker.number.int({min: undefined, max: undefined})})), ...overrideResponse})
 
-export const getGetOrgCollectionRelAnalyticsResponseMock = (overrideResponse: Partial< CredCollectionAnalytics > = {}): CredCollectionAnalytics => ({collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, programCount: faker.number.int({min: undefined, max: undefined}), programs: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})})), undefined]), badgeAdoption: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({badgeRelId: faker.string.alpha({length: {min: 10, max: 20}}), badgeName: faker.string.alpha({length: {min: 10, max: 20}}), programCount: faker.number.int({min: undefined, max: undefined})})), undefined]), ...overrideResponse})
+export const getGetOrgCollectionRelAnalyticsResponseMock = (overrideResponse: Partial< CredCollectionAnalytics > = {}): CredCollectionAnalytics => ({collectionRelId: faker.string.alpha({length: {min: 10, max: 20}}), collection: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdByOrgId: faker.string.alpha({length: {min: 10, max: 20}}), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), badgeCount: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), published: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, programCount: faker.number.int({min: undefined, max: undefined}), programs: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})})), badgeAdoption: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({badgeRelId: faker.string.alpha({length: {min: 10, max: 20}}), badgeName: faker.string.alpha({length: {min: 10, max: 20}}), programCount: faker.number.int({min: undefined, max: undefined})})), ...overrideResponse})
 
-export const getGetOrgBadgeRelAnalyticsResponseMock = (overrideResponse: Partial< CredBadgeAnalytics > = {}): CredBadgeAnalytics => ({badgeRelId: faker.string.alpha({length: {min: 10, max: 20}}), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), criteria: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])})), undefined]), createdByOrgId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, programCount: faker.number.int({min: undefined, max: undefined}), programs: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})})), undefined]), ...overrideResponse})
+export const getGetOrgBadgeRelAnalyticsResponseMock = (overrideResponse: Partial< CredBadgeAnalytics > = {}): CredBadgeAnalytics => ({badgeRelId: faker.string.alpha({length: {min: 10, max: 20}}), badge: {id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), description: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), imageUrl: faker.helpers.arrayElement([faker.internet.url(), undefined]), criteria: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), isRequired: faker.helpers.arrayElement([faker.datatype.boolean(), undefined])})), undefined]), createdByOrgId: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), createdAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined]), updatedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z', undefined])}, programCount: faker.number.int({min: undefined, max: undefined}), programs: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), slug: faker.string.alpha({length: {min: 10, max: 20}})})), ...overrideResponse})
 
 
 export const getRegisterMockHandler = (overrideResponse?: AuthResponse | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<AuthResponse> | AuthResponse), options?: RequestHandlerOptions) => {

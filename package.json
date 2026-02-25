@@ -9,7 +9,8 @@
     "typecheck": "react-router typegen && tsc",
     "spec:pull": "bash -c 'source .env && rm -rf spec/api && git clone --depth 1 --branch $SPEC_TAG git@github.com:Life2LaunchLabs/cred-api.git spec/api'",
     "api:gen": "orval",
-    "api:update": "npm run spec:pull && npm run api:gen"
+    "api:update": "npm run api:gen",
+    "api:update_old": "npm run spec:pull && npm run api:gen"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
